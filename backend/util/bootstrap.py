@@ -25,12 +25,6 @@ def get_preamble():
     import os, sys, platform, getpass, socket
     import util.version as version
     import util.logger as logger
-    
-    # PyInstaller paths
-    if getattr(sys, 'frozen', False):
-        runtime_path = sys._MEIPASS + " | " + sys.executable
-    else:
-        runtime_path = os.path.abspath(os.getcwd()) + " (CWD)"
         
     try:
         ip = socket.gethostbyname(socket.gethostname())
@@ -59,7 +53,7 @@ Log file: {}
                platform.platform(),
                sys.version,
                getpass.getuser(), hostname, ip,
-               runtime_path,
+               get_runtime_path(),
                ' '.join(sys.argv),
                logger.current_log_file_path)
     

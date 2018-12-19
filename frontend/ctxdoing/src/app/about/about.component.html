@@ -1,0 +1,9 @@
+<clr-modal [(clrModalOpen)]="showAboutModal" [clrModalClosable]="false">
+  <h3 class="modal-title">About ctxdoing</h3>
+  <div class="modal-body">
+    {{versionString}}
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-primary" type="button" (click)="updateVisibilityState(false)">Ok</button>
+</div>
+</clr-modal>

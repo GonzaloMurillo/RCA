@@ -11,7 +11,7 @@ _log = logger.get_logger(__name__)
 @app.route("/api/version", methods=['GET'])
 def get_version():
     result = {'version': version.__pretty_version__ }
-    _log.info("REST API returns version: %s", version)
+    _log.info("REST API returns version: %s", result)
 
     return (jsonify(result),
             200,

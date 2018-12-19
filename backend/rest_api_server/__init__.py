@@ -37,3 +37,4 @@ _log.debug("STATIC_DIR_PATH: %s", app.config['STATIC_DIR_PATH'])
 
 # Import other Flask sub-modules containing URL handlers
 import default_routes
+import common_apis

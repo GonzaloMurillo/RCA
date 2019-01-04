@@ -1,0 +1,9 @@
+<clr-modal [(clrModalOpen)]="showErrorModal" [clrModalClosable]="false">
+    <h3 class="modal-title">Error</h3>
+    <div class="modal-body">
+      <div [innerHTML]="errorMessage"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" type="button" (click)="updateVisibilityState(false)">Ok</button>
+  </div>
+  </clr-modal>

@@ -1,4 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { LoggerService } from 'src/app/util/logger.service';
+import { ErrorDialogComponent } from 'src/app/error-dialog/error-dialog.component';
+import { ClrForm, ClrInputContainer } from '@clr/angular';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-asup-input',
@@ -7,9 +11,63 @@ import { Component, OnInit } from '@angular/core';
 })
 export class AsupInputComponent implements OnInit {
 
-  constructor() { }
+  @ViewChild(ClrForm) clrForm;
+  @ViewChild("asupFileUploadContainer") asupFileUploadContainer: ClrInputContainer;
+  @ViewChild("asupFileAutoCoresPathContainer") asupFileAutoCoresPathContainer: ClrInputContainer;
+  @ViewChild("asupFromElysiumSerialNumberContainer") asupFromElysiumSerialNumberContainer: ClrInputContainer;
+  @ViewChild("errorDialog") errorDialog: ErrorDialogComponent;
+  
+  asupFileSpecificationMethod: string = 'upload';
+  localAsupFileUpload: any;
+  asupFileAutoCoresPath: string = '';
+  asupFromElysiumSerialNumber: string = '';
+
+
+  constructor(private log: LoggerService, private router: Router) { }
 
   ngOnInit() {
+  }
+
+  /**
+   * Set the local variable to the file name. 
+   * Does not actually upload the file - this is done later on form submit.
+   * 
+   * @param files List of file selected for upload (should be a single file for now)
+   */
+  onUploadAsupFile(files: FileList) {
+    this.log.info("Selected local ASUP file for upload: ", files);
+    this.localAsupFileUpload = files.item(0);
+    this.clearAllFieldsInvalidMarker();
+  }
+
+  /**
+   * Clear the 'error' state on any field - this will remove the red marker on all of them
+   */
+  clearAllFieldsInvalidMarker() {
+    this.asupFileUploadContainer.invalid = false;
+    this.asupFileAutoCoresPathContainer.invalid = false;
+    this.asupFromElysiumSerialNumberContainer.invalid = false;
+  }
+
+  /**
+   * Validate form inputs, submit to backend and navigate to next page if backend call succeeds
+   */
+  selectAsupAndProceed() {
+    this.clrForm.markAsDirty();
+    
+    if ('upload' == this.asupFileSpecificationMethod && !this.localAsupFileUpload) {
+      this.asupFileUploadContainer.invalid = true;
+      return;
+    } else if ('autoCores' == this.asupFileSpecificationMethod && '' == this.asupFileAutoCoresPath) {
+      this.asupFileAutoCoresPathContainer.invalid = true;
+      return;
+    } else if ('elysium' == this.asupFileSpecificationMethod && '' == this.asupFromElysiumSerialNumber) {
+      this.asupFromElysiumSerialNumberContainer.invalid = true;
+      return;
+    }
+
+    // Navigate to the next page
+    this.router.navigate(['replication-ctx-selection']);
   }
 
 }

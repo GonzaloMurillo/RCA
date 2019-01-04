@@ -14,6 +14,8 @@ import { HttpClientModule } from '@angular/common/http';
 import { AsupInputComponent } from './main-wizard/asup-input/asup-input.component';
 import { ReplicationCtxSelectionComponent } from './main-wizard/replication-ctx-selection/replication-ctx-selection.component';
 import { ReplicationAnalysisComponent } from './main-wizard/replication-analysis/replication-analysis.component';
+import { FormsModule } from '@angular/forms';
+import { ErrorDialogComponent } from './error-dialog/error-dialog.component';
 
 @NgModule({
   declarations: [
@@ -21,14 +23,16 @@ import { ReplicationAnalysisComponent } from './main-wizard/replication-analysis
     AboutComponent,
     AsupInputComponent,
     ReplicationCtxSelectionComponent,
-    ReplicationAnalysisComponent
+    ReplicationAnalysisComponent,
+    ErrorDialogComponent
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
     ClarityModule,
     BrowserAnimationsModule,
-    HttpClientModule
+    HttpClientModule,
+    FormsModule
   ],
   providers: [
     { provide: LoggerService, useClass: ConsoleLoggerService }

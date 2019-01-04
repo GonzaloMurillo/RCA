@@ -11,11 +11,17 @@ import { AboutComponent } from './about/about.component';
 import { ConsoleLoggerService } from './util/console-logger.service';
 import { LoggerService } from './util/logger.service';
 import { HttpClientModule } from '@angular/common/http';
+import { AsupInputComponent } from './main-wizard/asup-input/asup-input.component';
+import { ReplicationCtxSelectionComponent } from './main-wizard/replication-ctx-selection/replication-ctx-selection.component';
+import { ReplicationAnalysisComponent } from './main-wizard/replication-analysis/replication-analysis.component';
 
 @NgModule({
   declarations: [
     AppComponent,
-    AboutComponent
+    AboutComponent,
+    AsupInputComponent,
+    ReplicationCtxSelectionComponent,
+    ReplicationAnalysisComponent
   ],
   imports: [
     BrowserModule,

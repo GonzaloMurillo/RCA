@@ -1,3 +1,24 @@
-<p>
-  replication-ctx-selection works!
-</p>
+<h1>Replication Context</h1>
+<p>Select one or more replication contexts to analyze from the auto-support file</p>
+
+<clr-datagrid [(clrDgSelected)]="selectedRows">
+    <clr-dg-column clrDgField="ctx" class="ctx-number-column">Context</clr-dg-column>
+    <clr-dg-column clrDgField="mtree">Mtree</clr-dg-column>
+    <clr-dg-column clrDgField="destination">Destination</clr-dg-column>
+
+    <clr-dg-row *clrDgItems="let row of replicationContexts" [clrDgItem]="row">
+        <clr-dg-cell class="ctx-number-column">{{row.ctx}}</clr-dg-cell>
+        <clr-dg-cell>{{row.mtree}}</clr-dg-cell>
+        <clr-dg-cell>{{row.destination}}</clr-dg-cell>
+    </clr-dg-row>
+
+    <clr-dg-footer>{{selectedRows.length}} replication contexts will be anlyzed.</clr-dg-footer>
+</clr-datagrid>
+
+<br />
+
+<button class="btn btn-primary" type="button" (click)="selectReplicationContextsAndProceed()">
+  <clr-icon shape="search"></clr-icon> Analyze
+</button>
+
+<app-error-dialog #errorDialog></app-error-dialog>

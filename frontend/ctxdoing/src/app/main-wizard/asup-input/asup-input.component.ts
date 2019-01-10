@@ -3,6 +3,7 @@ import { LoggerService } from 'src/app/util/logger.service';
 import { ErrorDialogComponent } from 'src/app/error-dialog/error-dialog.component';
 import { ClrForm, ClrInputContainer } from '@clr/angular';
 import { Router } from '@angular/router';
+import { BackendService } from 'src/app/backend/backend.service';
 
 @Component({
   selector: 'app-asup-input',
@@ -16,14 +17,14 @@ export class AsupInputComponent implements OnInit {
   @ViewChild("asupFileAutoCoresPathContainer") asupFileAutoCoresPathContainer: ClrInputContainer;
   @ViewChild("asupFromElysiumSerialNumberContainer") asupFromElysiumSerialNumberContainer: ClrInputContainer;
   @ViewChild("errorDialog") errorDialog: ErrorDialogComponent;
-  
+
   asupFileSpecificationMethod: string = 'upload';
   localAsupFileUpload: any;
   asupFileAutoCoresPath: string = '';
   asupFromElysiumSerialNumber: string = '';
 
 
-  constructor(private log: LoggerService, private router: Router) { }
+  constructor(private log: LoggerService, private router: Router, private backend: BackendService) { }
 
   ngOnInit() {
   }
@@ -54,7 +55,7 @@ export class AsupInputComponent implements OnInit {
    */
   selectAsupAndProceed() {
     this.clrForm.markAsDirty();
-    
+
     if ('upload' == this.asupFileSpecificationMethod && !this.localAsupFileUpload) {
       this.asupFileUploadContainer.invalid = true;
       return;
@@ -66,8 +67,54 @@ export class AsupInputComponent implements OnInit {
       return;
     }
 
-    // Navigate to the next page
-    this.router.navigate(['replication-ctx-selection']);
+    switch (this.asupFileSpecificationMethod) {
+      case 'upload': {
+        this.backend.postAsupFile(this.localAsupFileUpload).subscribe(
+          data => {
+            this.log.info("Successfully uploaded ASUP file '", this.localAsupFileUpload, "' to backend");
+            // Navigate to the next page
+            this.router.navigate(['replication-ctx-selection']);
+          },
+          error => {
+            this.errorDialog.showError("Failed to upload ASUP file: " + error);
+          }
+        );
+
+        break;
+      }
+      case 'autoCores': {
+        this.backend.postAsupAutoCoresPath(this.asupFileAutoCoresPath).subscribe(
+          data => {
+            this.log.info("Successfully posted ASUP file location'", this.asupFileAutoCoresPath, "' to backend");
+            // Navigate to the next page
+            this.router.navigate(['replication-ctx-selection']);
+          },
+          error => {
+            this.errorDialog.showError("Failed to post ASUP file location: " + error);
+          }
+        );
+
+        break;
+      }
+      case 'elysium': {
+        this.backend.postAsupElysiumSerialNumber(this.asupFromElysiumSerialNumber).subscribe(
+          data => {
+            this.log.info("Successfully posted Elysium serial number '", this.asupFromElysiumSerialNumber, "' to backend");
+            // Navigate to the next page
+            this.router.navigate(['replication-ctx-selection']);
+          },
+          error => {
+            this.errorDialog.showError("Failed to post Elysium serial number: " + error);
+          }
+        );
+
+        break;
+      }
+      default: { // This should never happen
+        this.errorDialog.showError("Internal GUI error");
+      }
+    }
+
   }
 
 }

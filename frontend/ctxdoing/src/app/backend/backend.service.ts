@@ -10,13 +10,24 @@ export interface BackendVersion {
   version: string;
 }
 
+export interface AsupFileAutoCoresLocation {
+  auto_cores_path: string;
+}
+
+export interface AsupFileElysiumSerialNumber {
+  elysium_serial_number: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class BackendService {
-  
+
   urls = {
-    version: 'api/version'
+    version: 'api/version',           // GET
+    asupFileUpload: 'api/asup/file',  // POST with FormData
+    asupFileAutoCoresLocation: 'api/asup/auto_cores_path',  // POST with AsupFileAutoCoresLocation
+    asupFileElysiumSerialNumber: 'api/asup/elysium_serial_number',  // POST with AsupFileElysiumSerialNumber
   }
 
   constructor(private log: LoggerService, private http: HttpClient) { }
@@ -41,7 +52,7 @@ export class BackendService {
   private handleError(operation = 'operation') {
     return (error: any) => {
       let errorMessage = error.message;
-      
+
       if (error instanceof HttpErrorResponse) {
         // Sample: {operation} failed with HTTP 400 (BAD REQUEST): {custom error msg string from server} 
         this.log.error(`${operation} failed with HTTP ${error.status} (${error.statusText}): `, error.error);
@@ -58,6 +69,35 @@ export class BackendService {
     return this.http.get<BackendVersion>(this.urls.version)
       .pipe(
         catchError(this.handleError('getVersion'))
+      );
+  }
+
+  postAsupFile(file: File): Observable<any> {
+    let formData: FormData = new FormData();
+    formData.append('asup', file, file.name);
+    return this.http.post(this.urls.asupFileUpload, formData)
+      .pipe(
+        catchError(this.handleError('postAsupFile'))
+      );
+  }
+
+  postAsupAutoCoresPath(path: string): Observable<any> {
+    let payload: AsupFileAutoCoresLocation = {
+      auto_cores_path: path
+    };
+    return this.http.post(this.urls.asupFileAutoCoresLocation, payload)
+      .pipe(
+        catchError(this.handleError('postAsupAutoCoresPath'))
+      );
+  }
+
+  postAsupElysiumSerialNumber(serialNumber: string): Observable<any> {
+    let payload: AsupFileElysiumSerialNumber = {
+      elysium_serial_number: serialNumber
+    };
+    return this.http.post(this.urls.asupFileElysiumSerialNumber, payload)
+      .pipe(
+        catchError(this.handleError('postAsupElysiumSerialNumber'))
       );
   }
 }

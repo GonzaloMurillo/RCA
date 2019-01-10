@@ -1,6 +1,8 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { ErrorDialogComponent } from 'src/app/error-dialog/error-dialog.component';
 import { Router } from '@angular/router';
+import { BackendService, ReplicationContext } from 'src/app/backend/backend.service';
+import { LoggerService } from 'src/app/util/logger.service';
 
 @Component({
   selector: 'app-replication-ctx-selection',
@@ -12,20 +14,29 @@ export class ReplicationCtxSelectionComponent implements OnInit {
   @ViewChild("errorDialog") errorDialog: ErrorDialogComponent;
   
   selectedRows: any[] = [];
-  replicationContexts = [
-    {ctx: 1, mtree: '/data/col1/dd390gcsr01_crebm4900_lsu1_rep', destination: 'dd390gcsr01.nam.nsroot.net'},
-    {ctx: 2, mtree: '/data/col1/dd390gcsr01_crebm4900_lsu2_rep', destination: 'dd390gcsr01.nam.nsroot.net'},
-    {ctx: 3, mtree: '/data/col1/dd390gcsr01_crebm4900_lsu3_rep', destination: 'dd390gcsr01.nam.nsroot.net'}
-  ]
+  replicationContexts: ReplicationContext[];
 
-  constructor(private router: Router) { }
+  constructor(private router: Router, private backend: BackendService, private log: LoggerService) { }
 
   ngOnInit() {
-    this.selectedRows = this.replicationContexts;
+    this.populateReplicationContextsList();
+  }
+
+  populateReplicationContextsList() {
+    this.backend.getReplicationContextsList().subscribe(
+      data => {
+        this.log.info("Retrieved repl ctx list from backend: ", data);
+        this.replicationContexts = data;
+        this.selectedRows = this.replicationContexts;
+      },
+      error => {
+        this.errorDialog.showError("Failed to parse the ASUP file for a list of replication contexts");
+      }
+    );
   }
 
   /**
-   * Validate selection of repllication contexts and navigate to the next page
+   * Validate selection of replication contexts and navigate to the next page
    */
   selectReplicationContextsAndProceed() {
     if (0 == this.selectedRows.length) {

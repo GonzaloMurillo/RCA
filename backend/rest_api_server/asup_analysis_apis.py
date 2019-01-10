@@ -62,3 +62,29 @@ def asup_file_elysium_serial_number():
     return (jsonify({}),
             200,
             {'ContentType': 'application/json'})
+    
+@app.route("/api/asup/analysis/replication_contexts", methods=['GET'])
+def replication_contexts_list():
+    global asup_file_input_method
+    # Call ctxdoing to analyze the ASUP file and get a list of repl ctx
+    # Create an object, TODO if-else for different asup_file_input_method
+    # ctxdoing = AsupAnalyzer(asup_file_input_method, asup_file_save_path)
+    # repl_ctx_list = ctxdoing.get_repl_ctx_list()
+    
+    repl_ctx_list = [
+            {'ctx': 1, 
+             'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu1_rep', 
+             'destination': 'dd390gcsr01.nam.nsroot.net'},
+            {'ctx': 2, 
+             'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu2_rep', 
+             'destination': 'dd390gcsr01.nam.nsroot.net'},
+            {'ctx': 3, 
+             'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu3_rep', 
+             'destination': 'dd390gcsr01.nam.nsroot.net'}
+        ]
+    
+    _log.info("Found %d replication contexts", len(repl_ctx_list))
+    
+    return (jsonify(repl_ctx_list),
+            200,
+            {'ContentType': 'application/json'})

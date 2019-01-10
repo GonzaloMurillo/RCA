@@ -18,6 +18,12 @@ export interface AsupFileElysiumSerialNumber {
   elysium_serial_number: string;
 }
 
+export interface ReplicationContext {
+  ctx: number,
+  mtree: string,
+  destination: string
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -25,9 +31,12 @@ export class BackendService {
 
   urls = {
     version: 'api/version',           // GET
+    
     asupFileUpload: 'api/asup/file',  // POST with FormData
     asupFileAutoCoresLocation: 'api/asup/auto_cores_path',  // POST with AsupFileAutoCoresLocation
     asupFileElysiumSerialNumber: 'api/asup/elysium_serial_number',  // POST with AsupFileElysiumSerialNumber
+
+    replicationContextsList: '/api/asup/analysis/replication_contexts', // GET with ReplicationContext[]
   }
 
   constructor(private log: LoggerService, private http: HttpClient) { }
@@ -98,6 +107,13 @@ export class BackendService {
     return this.http.post(this.urls.asupFileElysiumSerialNumber, payload)
       .pipe(
         catchError(this.handleError('postAsupElysiumSerialNumber'))
+      );
+  }
+
+  getReplicationContextsList(): Observable<ReplicationContext[]> {
+    return this.http.get<ReplicationContext[]>(this.urls.replicationContextsList)
+      .pipe(
+        catchError(this.handleError('getReplicationContextsList'))
       );
   }
 }

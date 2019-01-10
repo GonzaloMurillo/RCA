@@ -24,6 +24,14 @@ export interface ReplicationContext {
   destination: string
 }
 
+export interface ReplicationContextAnalysisResult {
+  ctx: number,
+  mtree: string,
+  destination: string,
+  graphImage: string,
+  ctxUsageTime: any[]
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -36,7 +44,8 @@ export class BackendService {
     asupFileAutoCoresLocation: 'api/asup/auto_cores_path',  // POST with AsupFileAutoCoresLocation
     asupFileElysiumSerialNumber: 'api/asup/elysium_serial_number',  // POST with AsupFileElysiumSerialNumber
 
-    replicationContextsList: '/api/asup/analysis/replication_contexts', // GET with ReplicationContext[]
+    replicationContextsList: '/api/asup/analysis/replication_contexts', // GET, POST with ReplicationContext[]
+    replicationContextAnalysisResult: '/api/asup/analysis/replication_contexts/time_spent', // GET with ReplicationContextAnalysisResult[]
   }
 
   constructor(private log: LoggerService, private http: HttpClient) { }
@@ -114,6 +123,20 @@ export class BackendService {
     return this.http.get<ReplicationContext[]>(this.urls.replicationContextsList)
       .pipe(
         catchError(this.handleError('getReplicationContextsList'))
+      );
+  }
+
+  setSelectedReplicationContextsList(list: ReplicationContext[]) {
+    return this.http.post<ReplicationContext[]>(this.urls.replicationContextsList, list)
+      .pipe(
+        catchError(this.handleError('setSelectedReplicationContextsList'))
+      );
+  }
+
+  getReplicationContextsAnalysisResult(): Observable<ReplicationContextAnalysisResult[]> {
+    return this.http.get<ReplicationContextAnalysisResult[]>(this.urls.replicationContextAnalysisResult)
+      .pipe(
+        catchError(this.handleError('getReplicationContextsAnalysisResult'))
       );
   }
 }

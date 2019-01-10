@@ -44,7 +44,16 @@ export class ReplicationCtxSelectionComponent implements OnInit {
       return;
     }
 
-    // Navigate to the next page
-    this.router.navigate(['replication-analysis']);
+    this.backend.setSelectedReplicationContextsList(this.selectedRows).subscribe(
+      data => {
+        this.log.info("Posted selected repl ctx list to backend")
+        // Navigate to the next page
+        this.router.navigate(['replication-analysis']);
+      },
+      error => {
+        this.errorDialog.showError("Failed to select replication contexts for analysis: " + error);
+      }
+    );
+    
   }
 }

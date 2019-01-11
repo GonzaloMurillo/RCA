@@ -1,0 +1,5 @@
+REVIEWBOARD_URL = "http://10.118.244.120:8000/"
+REPOSITORY = "ctxdoing"
+REPOSITORY_TYPE = "git"
+BRANCH = "master"
+LAND_DEST_BRANCH = "master"

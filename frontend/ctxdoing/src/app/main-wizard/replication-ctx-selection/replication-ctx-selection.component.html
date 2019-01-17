@@ -3,13 +3,17 @@
 
 <clr-datagrid [(clrDgSelected)]="selectedRows">
     <clr-dg-column clrDgField="ctx" class="ctx-number-column">Context</clr-dg-column>
-    <clr-dg-column clrDgField="mtree">Mtree</clr-dg-column>
-    <clr-dg-column clrDgField="destination">Destination</clr-dg-column>
+    <clr-dg-column clrDgField="source.host">Source Host</clr-dg-column>
+    <clr-dg-column clrDgField="source.mtree">Source Mtree</clr-dg-column>
+    <clr-dg-column clrDgField="destination.host">Destination Host</clr-dg-column>
+    <clr-dg-column clrDgField="destination.mtree">Destination Mtree</clr-dg-column>
 
     <clr-dg-row *clrDgItems="let row of replicationContexts" [clrDgItem]="row">
         <clr-dg-cell class="ctx-number-column">{{row.ctx}}</clr-dg-cell>
-        <clr-dg-cell>{{row.mtree}}</clr-dg-cell>
-        <clr-dg-cell>{{row.destination}}</clr-dg-cell>
+        <clr-dg-cell>{{row.source.host}}</clr-dg-cell>
+        <clr-dg-cell>{{row.source.mtree}}</clr-dg-cell>
+        <clr-dg-cell>{{row.destination.host}}</clr-dg-cell>
+        <clr-dg-cell>{{row.destination.mtree}}</clr-dg-cell>
     </clr-dg-row>
 
     <clr-dg-footer>{{selectedRows.length}} replication contexts will be anlyzed.</clr-dg-footer>

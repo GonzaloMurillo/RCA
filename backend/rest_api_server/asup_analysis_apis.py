@@ -76,14 +76,35 @@ def replication_contexts_list():
         
         repl_ctx_list = [
                 {'ctx': 1, 
-                 'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu1_rep', 
-                 'destination': 'dd390gcsr01.nam.nsroot.net'},
+                 'source': {
+                     'host': 'dd390gcsr01.nam.nsroot.net',
+                     'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu1_rep', 
+                     },
+                 'destination': {
+                     'host': 'dd390gcsr02.nam.nsroot.net',
+                     'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu1_rep'
+                    }
+                },
                 {'ctx': 2, 
-                 'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu2_rep', 
-                 'destination': 'dd390gcsr01.nam.nsroot.net'},
+                 'source': {
+                     'host': 'dd390gcsr01.nam.nsroot.net',
+                     'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu2_rep', 
+                     },
+                 'destination': {
+                     'host': 'dd390gcsr02.nam.nsroot.net',
+                     'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu2_rep'
+                     }
+                },
                 {'ctx': 3, 
-                 'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu3_rep', 
-                 'destination': 'dd390gcsr01.nam.nsroot.net'}
+                 'source': {
+                     'host': 'dd390gcsr01.nam.nsroot.net',
+                     'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu3_rep', 
+                     },
+                 'destination': {
+                     'host': 'dd390gcsr02.nam.nsroot.net',
+                     'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu3_rep'
+                     }
+                }
             ]
         
         _log.info("Found %d replication contexts", len(repl_ctx_list))

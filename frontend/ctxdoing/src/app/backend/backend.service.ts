@@ -8,21 +8,27 @@ import { LoggerService } from '../util/logger.service';
 
 export interface BackendVersion {
   version: string;
-}
+};
 
 export interface AsupFileAutoCoresLocation {
   auto_cores_path: string;
-}
+};
 
 export interface AsupFileElysiumSerialNumber {
   elysium_serial_number: string;
-}
+};
 
 export interface ReplicationContext {
   ctx: number,
-  mtree: string,
-  destination: string
-}
+  source: {
+    host: string,
+    mtree: string
+  },
+  destination: {
+    host: string,
+    mtree: string,
+  }
+};
 
 export interface ReplicationContextAnalysisResult {
   ctx: number,
@@ -30,7 +36,7 @@ export interface ReplicationContextAnalysisResult {
   destination: string,
   graphImage: string,
   ctxUsageTime: any[]
-}
+};
 
 @Injectable({
   providedIn: 'root'

@@ -32,9 +32,10 @@ CORS(app)
 app.config['RUNTIME_WORKING_DIR'] = runtime_path
 app.config['STATIC_DIR_PATH'] = os.path.join(runtime_path, "static")
 
-_log.debug("RRUNTIME_WORKING_DIR: %s", app.config['RUNTIME_WORKING_DIR'])
+_log.debug("RUNTIME_WORKING_DIR: %s", app.config['RUNTIME_WORKING_DIR'])
 _log.debug("STATIC_DIR_PATH: %s", app.config['STATIC_DIR_PATH'])
 
 # Import other Flask sub-modules containing URL handlers
 import default_routes
 import common_apis
+import asup_analysis_apis

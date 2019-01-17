@@ -1,0 +1,53 @@
+<h1>Replication Context Time Report</h1>
+<p>This report analyses the time spent by each replication context.</p>
+<br />
+<div *ngIf="replicationContexts">
+  <clr-tabs>
+    <div *ngFor="let c of replicationContexts">
+      <clr-tab>
+        <button clrTabLink>Context {{c.ctxDetails.ctx}}</button>
+        <clr-tab-content *clrIfActive>
+          <div class="content-area">
+            <table class="table repl-details-table">
+              <tr>
+                <td>
+                  <p class="repl-details-header">
+                    <span class="label">{{c.ctxDetails.source.host}}</span> <br />
+                    {{c.ctxDetails.source.mtree}}
+                  </p>
+                </td>
+                <td class="repl-details-arrow">
+                  <clr-icon shape="arrow" dir="right"></clr-icon>
+                </td>
+                <td>
+                    <p class="repl-details-header">
+                        <span class="label">{{c.ctxDetails.destination.host}}</span> <br />
+                        {{c.ctxDetails.destination.mtree}}
+                      </p>
+                </td>
+              </tr>
+            </table>
+            <br />
+            <div class="clr-row">
+              <div class="clr-col-md-6">
+                <img src="{{c.graphImage}}" />
+              </div>
+
+              <div class="clr-col-md-6">
+                <table class="table table-vertical">
+                  <tbody>
+                    <tr *ngFor="let row of c.ctxUsageTime">
+                      <td class="left">{{row.key}}</td>
+                      <td class="left" [ngClass]="{'red-cell': (row.value > 80 && row.unit == '%')}">{{row.value}} {{row.unit}}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </clr-tab-content>
+      </clr-tab>
+    </div>
+  </clr-tabs>
+</div>
+<app-error-dialog #errorDialog></app-error-dialog>

@@ -1,0 +1,16 @@
+.red-cell {
+    background-color: red;
+}
+
+.repl-details-table {
+    width: auto;
+    margin: auto;
+}
+
+.repl-details-header {
+    margin-top: 0;
+}
+
+.repl-details-arrow {
+    vertical-align: middle;
+}

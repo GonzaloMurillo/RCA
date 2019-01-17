@@ -1,0 +1,52 @@
+<h1>Auto-Support Location</h1>
+<p>This tool can analyze Auto-Support files from various locations. Choose any one and provide the necessary inputs.</p>
+
+<form clrForm>
+  <clr-input-container #asupFileUploadContainer>
+    <label class="clr-col-xs-12 clr-col-md-3" (click)="asupFileSpecificationMethod='upload'">
+      <clr-radio-wrapper class="radio-in-label">
+        <input type="radio" clrRadio name="asupFileSpecificationMethod" value="upload" [(ngModel)]="asupFileSpecificationMethod">
+      </clr-radio-wrapper>
+      Upload single ASUP file
+    </label>
+    <input class="clr-col-xs-12 clr-col-md-8" clrInput type="file" id="asupFileUpload" (change)="onUploadAsupFile($event.target.files)"
+      #asupFileUpload>
+    <clr-control-helper>Select an ASUP file locally on your laptop.</clr-control-helper>
+    <clr-control-error>Browse for a file to be uploaded for analysis</clr-control-error>
+  </clr-input-container>
+
+  <clr-input-container #asupFileAutoCoresPathContainer>
+    <label class="clr-col-xs-12 clr-col-md-3" (click)="asupFileSpecificationMethod='autoCores'">
+      <clr-radio-wrapper class="radio-in-label">
+        <input type="radio" clrRadio name="asupFileSpecificationMethod" value="autoCores" [(ngModel)]="asupFileSpecificationMethod"
+          (change)="clearAllFieldsInvalidMarker()">
+      </clr-radio-wrapper>
+      Use from /auto/cores share
+    </label>
+    <input class="clr-col-xs-12 clr-col-md-8" clrInput name="asupFileAutoCoresPath" [(ngModel)]="asupFileAutoCoresPath"
+      placeholder="/auto/cores/" />
+    <clr-control-helper>Full path to a single autosupport file</clr-control-helper>
+    <clr-control-error>Enter the path as '/auto/cores/(bug_id_/autosupport</clr-control-error>
+  </clr-input-container>
+
+  <clr-input-container #asupFromElysiumSerialNumberContainer>
+    <label class="clr-col-xs-12 clr-col-md-3" (click)="asupFileSpecificationMethod='elysium'">
+      <clr-radio-wrapper class="radio-in-label">
+        <input type="radio" clrRadio name="asupFileSpecificationMethod" value="elysium" [(ngModel)]="asupFileSpecificationMethod">
+      </clr-radio-wrapper>
+      Use from Elysium database
+    </label>
+    <input class="clr-col-xs-12 clr-col-md-8" clrInput name="asupFromElysiumSerialNumber" [(ngModel)]="asupFromElysiumSerialNumber"
+      placeholder="" (change)="clearAllFieldsInvalidMarker()" />
+    <clr-control-helper>Serial number of the Data Domain system</clr-control-helper>
+    <clr-control-error>Enter a valid Data Domain serial number</clr-control-error>
+  </clr-input-container>
+
+  <br />
+
+  <button class="btn btn-primary" type="submit" (click)="selectAsupAndProceed()">
+    <clr-icon shape="search"></clr-icon> Analyze
+  </button>
+</form>
+
+<app-error-dialog #errorDialog></app-error-dialog>

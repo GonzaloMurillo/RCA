@@ -31,10 +31,7 @@ export interface ReplicationContext {
 };
 
 export interface ReplicationContextAnalysisResult {
-  ctx: number,
-  mtree: string,
-  destination: string,
-  graphImage: string,
+  ctxDetails: ReplicationContext,
   ctxUsageTime: any[]
 };
 

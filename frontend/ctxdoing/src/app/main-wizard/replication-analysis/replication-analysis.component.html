@@ -5,10 +5,28 @@
   <clr-tabs>
     <div *ngFor="let c of replicationContexts">
       <clr-tab>
-        <button clrTabLink>Context {{c.ctx}}</button>
+        <button clrTabLink>Context {{c.ctxDetails.ctx}}</button>
         <clr-tab-content *clrIfActive>
           <div class="content-area">
-            <h3>{{c.mtree}} <clr-icon shape="arrow" dir="right"></clr-icon> {{c.destination}}</h3>
+            <table class="table repl-details-table">
+              <tr>
+                <td>
+                  <p class="repl-details-header">
+                    <span class="label">{{c.ctxDetails.source.host}}</span> <br />
+                    {{c.ctxDetails.source.mtree}}
+                  </p>
+                </td>
+                <td class="repl-details-arrow">
+                  <clr-icon shape="arrow" dir="right"></clr-icon>
+                </td>
+                <td>
+                    <p class="repl-details-header">
+                        <span class="label">{{c.ctxDetails.destination.host}}</span> <br />
+                        {{c.ctxDetails.destination.mtree}}
+                      </p>
+                </td>
+              </tr>
+            </table>
             <br />
             <div class="clr-row">
               <div class="clr-col-md-6">

@@ -32,7 +32,11 @@ export interface ReplicationContext {
 
 export interface ReplicationContextAnalysisResult {
   ctxDetails: ReplicationContext,
-  ctxUsageTime: any[]
+  ctxUsageTime: {
+    key: string,
+    value: string,
+    unit: string
+  }[]
 };
 
 @Injectable({

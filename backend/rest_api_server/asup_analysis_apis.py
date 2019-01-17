@@ -144,19 +144,19 @@ def analyze_replication_contexts():
           # Then set this path to /static/img-uuid-here.png
           'graphImage': 'assets/replicationgraph.png', 
           'ctxUsageTime': [
-            { "key": "Total time spent by the replication context", "value": "11362471 seconds" },
-            { "key": "Time sending references", "value": "0.2" },
-            { "key": "Time sending segments", "value": "1.5" },
-            { "key": "Time receiving references", "value": "0.4" },
-            { "key": "Time waiting for references from destination", "value": "1.4" },
-            { "key": "Time waiting getting references", "value": "2.9" },
-            { "key": "Time local reading segments", "value": "93.6" },
-            { "key": "Time sending small files", "value": "0.0" },
-            { "key": "Time sending sketches", "value": "0.0" },
-            { "key": "Time receiving bases", "value": "0.0" },
-            { "key": "Time reading bases", "value": "0.0" },
-            { "key": "Time getting chunk info", "value": "0.0" },
-            { "key": "Time unpacking chunks of info", "value": "0.0" }
+            { "key": "Total time spent by the replication context", "value": "11362471", "unit": "seconds" },
+            { "key": "Time sending references", "value": "0.2", "unit": "%" },
+            { "key": "Time sending segments", "value": "1.5", "unit": "%" },
+            { "key": "Time receiving references", "value": "0.4", "unit": "%" },
+            { "key": "Time waiting for references from destination", "value": "1.4", "unit": "%" },
+            { "key": "Time waiting getting references", "value": "2.9", "unit": "%" },
+            { "key": "Time local reading segments", "value": "93.6", "unit": "%" },
+            { "key": "Time sending small files", "value": "0.0", "unit": "%" },
+            { "key": "Time sending sketches", "value": "0.0", "unit": "%" },
+            { "key": "Time receiving bases", "value": "0.0", "unit": "%" },
+            { "key": "Time reading bases", "value": "0.0", "unit": "%" },
+            { "key": "Time getting chunk info", "value": "0.0", "unit": "%" },
+            { "key": "Time unpacking chunks of info", "value": "0.0", "unit": "%" }
           ]
         },
         {
@@ -173,19 +173,19 @@ def analyze_replication_contexts():
             },
           'graphImage': 'assets/replicationgraph.png',
           'ctxUsageTime': [
-            { "key": "Total time spent by the replication context", "value": "11362471 seconds" },
-            { "key": "Time sending references", "value": "0.2" },
-            { "key": "Time sending segments", "value": "1.5" },
-            { "key": "Time receiving references", "value": "0.4" },
-            { "key": "Time waiting for references from destination", "value": "1.4" },
-            { "key": "Time waiting getting references", "value": "2.9" },
-            { "key": "Time local reading segments", "value": "93.6" },
-            { "key": "Time sending small files", "value": "0.0" },
-            { "key": "Time sending sketches", "value": "0.0" },
-            { "key": "Time receiving bases", "value": "0.0" },
-            { "key": "Time reading bases", "value": "0.0" },
-            { "key": "Time getting chunk info", "value": "0.0" },
-            { "key": "Time unpacking chunks of info", "value": "0.0" }
+            { "key": "Total time spent by the replication context", "value": "11362471", "unit": "seconds" },
+            { "key": "Time sending references", "value": "0.2", "unit": "%" },
+            { "key": "Time sending segments", "value": "1.5", "unit": "%" },
+            { "key": "Time receiving references", "value": "0.4", "unit": "%" },
+            { "key": "Time waiting for references from destination", "value": "1.4", "unit": "%" },
+            { "key": "Time waiting getting references", "value": "2.9", "unit": "%" },
+            { "key": "Time local reading segments", "value": "93.6", "unit": "%" },
+            { "key": "Time sending small files", "value": "0.0", "unit": "%" },
+            { "key": "Time sending sketches", "value": "0.0", "unit": "%" },
+            { "key": "Time receiving bases", "value": "0.0", "unit": "%" },
+            { "key": "Time reading bases", "value": "0.0", "unit": "%" },
+            { "key": "Time getting chunk info", "value": "0.0", "unit": "%" },
+            { "key": "Time unpacking chunks of info", "value": "0.0", "unit": "%" }
           ]
         },
         {
@@ -202,19 +202,19 @@ def analyze_replication_contexts():
             },
           'graphImage': 'assets/replicationgraph.png',
           'ctxUsageTime': [
-            { "key": "Total time spent by the replication context", "value": "11362471 seconds" },
-            { "key": "Time sending references", "value": "0.2" },
-            { "key": "Time sending segments", "value": "1.5" },
-            { "key": "Time receiving references", "value": "0.4" },
-            { "key": "Time waiting for references from destination", "value": "1.4" },
-            { "key": "Time waiting getting references", "value": "2.9" },
-            { "key": "Time local reading segments", "value": "93.6" },
-            { "key": "Time sending small files", "value": "0.0" },
-            { "key": "Time sending sketches", "value": "0.0" },
-            { "key": "Time receiving bases", "value": "0.0" },
-            { "key": "Time reading bases", "value": "0.0" },
-            { "key": "Time getting chunk info", "value": "0.0" },
-            { "key": "Time unpacking chunks of info", "value": "0.0" }
+            { "key": "Total time spent by the replication context", "value": "11362471", "unit": "seconds" },
+            { "key": "Time sending references", "value": "0.2", "unit": "%" },
+            { "key": "Time sending segments", "value": "1.5", "unit": "%" },
+            { "key": "Time receiving references", "value": "0.4", "unit": "%" },
+            { "key": "Time waiting for references from destination", "value": "1.4", "unit": "%" },
+            { "key": "Time waiting getting references", "value": "2.9", "unit": "%" },
+            { "key": "Time local reading segments", "value": "93.6", "unit": "%" },
+            { "key": "Time sending small files", "value": "0.0", "unit": "%" },
+            { "key": "Time sending sketches", "value": "0.0", "unit": "%" },
+            { "key": "Time receiving bases", "value": "0.0", "unit": "%" },
+            { "key": "Time reading bases", "value": "0.0", "unit": "%" },
+            { "key": "Time getting chunk info", "value": "0.0", "unit": "%" },
+            { "key": "Time unpacking chunks of info", "value": "0.0", "unit": "%" }
           ]
         }
     ]

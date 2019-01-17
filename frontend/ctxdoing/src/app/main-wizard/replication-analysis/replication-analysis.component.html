@@ -38,7 +38,7 @@
                   <tbody>
                     <tr *ngFor="let row of c.ctxUsageTime">
                       <td class="left">{{row.key}}</td>
-                      <td class="left" [ngClass]="{'red-cell': (row.value > 80)}">{{row.value}}</td>
+                      <td class="left" [ngClass]="{'red-cell': (row.value > 80 && row.unit == '%')}">{{row.value}} {{row.unit}}</td>
                     </tr>
                   </tbody>
                 </table>

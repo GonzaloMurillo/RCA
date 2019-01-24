@@ -223,6 +223,9 @@ class DataDomain():
                      aux_hostname=aux[1].strip()
                      self.hostname=aux_hostname
                      break
+    # function give_me_position_in_header_of
+    # We use this function beause some times the order in the columns that represent lrepl client time stats, change
+    # from DD OS version to DD OS version, so we cannot rely on a fixed position. This function returns dinamically the position.
 
     def give_me_position_in_header_of(self,column_name):
         self.column_name=column_name

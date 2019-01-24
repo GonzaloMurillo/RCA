@@ -1,0 +1,4 @@
+This autosupport 
+
+1) 9 source contexts
+2) only context 1,4,8 have lrepl client time stats information

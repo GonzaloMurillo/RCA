@@ -277,7 +277,7 @@ def analyze_replication_contexts():
 
           save_name_path=app.config['STATIC_DIR_PATH']
           save_name="ctxplot"+"-"+graph.random_name(5)+".png" # We create a random name 5 characters long
-          import os
+          
           returned_graph=graph.plot_context(list_ctx_usage_time,os.path.join(save_name_path,save_name))
 
           if(returned_graph==save_name): # We suceeded to create the graph

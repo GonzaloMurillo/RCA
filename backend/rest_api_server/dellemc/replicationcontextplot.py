@@ -82,8 +82,8 @@ class ReplicationContextPlot():
               explode = explode + tuple0
 
       fig1, ax1 = plt.subplots()
-      fig1.set_figheight(9)
-      fig1.set_figwidth(9)
+      fig1.set_figheight(7)
+      fig1.set_figwidth(7)
       ax1.pie(sizes, explode=explode, startangle=90)
       first_legend = plt.legend(labels, loc=7, borderpad=1) # The legend explaining what each value means
       ax = plt.gca().add_artist(first_legend)
@@ -109,6 +109,6 @@ class ReplicationContextPlot():
           random_number=random.randint(0,len(alphabet)-1)
           _log.info("the random number:{}".format(random_number))
           random_name.append(alphabet[random_number])
-          
+
 
       return "".join(map(str,random_name))

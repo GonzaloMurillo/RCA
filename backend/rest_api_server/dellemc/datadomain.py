@@ -146,6 +146,7 @@ class DataDomain():
     # which normally means that is a source context and hence the name of the function, but sometimes, even a source context has no valid lrepl_client_time_stats
     # because there are too many contexts and lrepl client time stats is not calculated for all of them, or because all the metrics are 0
     def is_source_context(self,i):
+        total=0
         _log.info("Information of Lrepl client time stats {}".format(self.lrepl_client_time_stats))
         context_string="rctx://"+str(i)
 
@@ -157,11 +158,21 @@ class DataDomain():
             _log.info("Context string:{} compared with {}".format(context_string,read_context[0]))
             if(context_string in read_context[0]): # index 0 from the second list is the context number, for the first one is the header
                 _log.info("NICE!:The context:{}, is a replication context we have lrepl client time stats info".format(context_string))
+                # This is a check to avoid replication context where all the lrepl client time stats added sum 0
+                # Can be commented, if we want to display contexts without lrepl client time stats.
+                for t in range(1,len(read_context)):
+                    total=total+int(read_context[t])
+                if(total!=0):
+                        return True # As we have information in lrepl client time stats and the columns together not add 0
+
+                #_log.info("The added test:".format(total))
                 # We could check here if the times of the contexts sum 0 and do not display then, but we have not done it, we display them as empty (which I think is better)
-                return True
-        # At this level of indentation we have traversed all the list and there is no lrepl client time stat information for the context
-        _log.info("SORRY!:The context:{}, is a replication context we DO NOT have lrepl client time stats info".format(context_string))
-        return False
+        else:
+            # At this level of indentation we have traversed all the list and there is no lrepl client time stat information for the context
+            
+            _log.info("SORRY!:The context:{}, is a replication context we DO NOT have lrepl client time stats info".format(context_string))
+            return False
+
 
     # This function prints an specific replication context
     def print_replication_context(self,context_number):

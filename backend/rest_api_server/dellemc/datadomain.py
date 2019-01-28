@@ -165,11 +165,10 @@ class DataDomain():
                 if(total!=0):
                         return True # As we have information in lrepl client time stats and the columns together not add 0
 
-                #_log.info("The added test:".format(total))
-                # We could check here if the times of the contexts sum 0 and do not display then, but we have not done it, we display them as empty (which I think is better)
+
         else:
             # At this level of indentation we have traversed all the list and there is no lrepl client time stat information for the context
-            
+
             _log.info("SORRY!:The context:{}, is a replication context we DO NOT have lrepl client time stats info".format(context_string))
             return False
 

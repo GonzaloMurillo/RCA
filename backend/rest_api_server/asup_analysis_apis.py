@@ -277,10 +277,10 @@ def analyze_replication_contexts():
 
           save_name_path=app.config['STATIC_DIR_PATH']
           save_name="ctxplot"+"-"+graph.random_name(5)+".png" # We create a random name 5 characters long
-          
+
           returned_graph=graph.plot_context(list_ctx_usage_time,os.path.join(save_name_path,save_name))
 
-          if(returned_graph==save_name): # We suceeded to create the graph
+          if(returned_graph==os.path.join(save_name_path,save_name)): # We suceeded to create the graph
             _log.info("We suceeded to create the graph named:{}".format(save_name))
           else:
             _log.info("Seems that not all the columns required to plot the graph are there. Name of the graph:{}".format(save_name))

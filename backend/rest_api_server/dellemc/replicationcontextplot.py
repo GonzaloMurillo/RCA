@@ -61,11 +61,11 @@ class ReplicationContextPlot():
 
 
       _log.info("send_refs_percentage:{}".format(send_refs_percentage))
-      labels = ['Time sending references: '+format(send_refs_percentage,'.1f')+"%", 'Time sending segments '+format(send_segs_percentage,'.1f')+"%",'Time receiving references '+format(recv_refs_percentage,'.1f')+"%",
-    'Time waiting for references from destination '+format(recv_refs_sleep_percentage,'.1f')+"%",'Time waiting getting references '+format(recv_refs_sleep_percentage,'.1f')+"%",
-    'Time local reading segments '+format(read_segs_percentage,'.1f')+"%",'Time sending small files '+format(send_small_file_percentage,'.1f')+"%",'Time sending sketches '+format(send_sketches_percentage,'.1f')+"%",
-    'Time receiving bases '+format(recv_bases_percentage,'.1f')+"%",'Time reading bases '+format(read_bases_percentage,'.1f')+"%",'Time getting chunk info '+format(get_chunk_info_percentage,'.1f')+"%",
-    'Time unpacking chunks of info '+format(unpack_chunks_percentage,'.1f')+"%"]
+      labels = ['Sending refs:'+format(send_refs_percentage,'.1f')+"%", 'Sending segs:'+format(send_segs_percentage,'.1f')+"%",'Receiving refs:'+format(recv_refs_percentage,'.1f')+"%",
+    'Waiting refs:'+format(recv_refs_sleep_percentage,'.1f')+"%",'Getting refs:'+format(get_refs_percentage,'.1f')+"%",
+    'Local read segs:'+format(read_segs_percentage,'.1f')+"%",'Sending small files:'+format(send_small_file_percentage,'.1f')+"%",'Sending sketches:'+format(send_sketches_percentage,'.1f')+"%",
+    'Receiving bases:'+format(recv_bases_percentage,'.1f')+"%",'Reading bases:'+format(read_bases_percentage,'.1f')+"%",'Getting chunk info:'+format(get_chunk_info_percentage,'.1f')+"%",
+    'Unpack chunks:'+format(unpack_chunks_percentage,'.1f')+"%"]
 
       sizes = [format(send_refs_percentage,'.1f'),format(send_segs_percentage,'.1f'),format(recv_refs_percentage,'.1f'),format(recv_refs_sleep_percentage,'.1f'),format(get_refs_percentage,'.1f'),format(read_segs_percentage,'.1f'),format(send_small_file_percentage,'.1f'),format(send_sketches_percentage,'.1f'),format(recv_bases_percentage,'.1f'),format(read_bases_percentage,'.1f'),format(get_chunk_info_percentage,'.1f'),format(unpack_chunks_percentage,'.1f')]
       max_value_found = max(sizes)
@@ -80,20 +80,23 @@ class ReplicationContextPlot():
               explode = explode + tuple1
           else:
               explode = explode + tuple0
+      #print(plt.style.available)
+      #plt.style.use('fivethirtyeight')
 
       fig1, ax1 = plt.subplots()
-      fig1.set_figheight(7)
-      fig1.set_figwidth(7)
+
+      fig1.set_figheight(6)
+      fig1.set_figwidth(6)
       ax1.pie(sizes, explode=explode, startangle=90)
-      first_legend = plt.legend(labels, loc=7, borderpad=1) # The legend explaining what each value means
+      first_legend = plt.legend(labels, loc=0, fancybox=True,framealpha=0.1) # The legend explaining what each value means
       ax = plt.gca().add_artist(first_legend)
       ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-      title = 'Time spent by each replication operation'
-      ax1.set_title(title, fontsize=20)
+      title = 'TIME SPENT BY EACH REPLICATION OPERATION'
+      ax1.set_title(title, fontsize=15)
 
       _log.info("We are going to save the graph:{}".format(self.save_name))
       graph_saved=self.save_name
-      plt.savefig(graph_saved) # We save the graph
+      plt.savefig(graph_saved,facecolor="#fafafa") # We save the graph
       return (graph_saved)
 
   def random_name(self,lenght_of_name):

@@ -7,6 +7,14 @@
     margin: auto;
 }
 
+.repl-details-table-element {
+    margin-top: 0;
+}
+
+.repl-image {
+    width: 100%;
+}
+
 .repl-details-header {
     margin-top: 0;
 }

@@ -136,6 +136,7 @@ class DataDomain():
     # We use this function for creating an structure of just the contexts that need to be displayed in the get_repl_ctx_list_frontend
     # Those contexts are the contexts from which we hace Lrepl client time stats
     def populate_replication_contexts_frontend(self):
+        self.replication_contexts_frontend=[]
         _log.info("Num of replication contexts:{}".format(self.num_of_replication_contexts))
         for context in self.replication_contexts:
             _log.info("A context that we are trying to identify if is useful for the front-end:{}".format(context['ctx_number']))  #Is useful if it is a context that we have lrepl client time stats data.

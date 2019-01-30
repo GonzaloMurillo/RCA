@@ -31,9 +31,11 @@ def start_flask_server():
     ''' Start the Flask REST API server
 
     This function blocks indefinitely
-    '''    
+    '''
     global flask_app
     from rest_api_server import app
+    #app.config['STATIC_FOLDER']='C:\\gonzalobackend\\ctxdoing\\backend\\static\\' # gonzalo
+
     flask_app = app
 
     from werkzeug.serving import make_server
@@ -54,7 +56,7 @@ def stop_server(signal, frame):
     Executes all registered shutdown callbacks and then quits with exit_code 0
     '''
     global shutdown_in_progress
-    
+
     if shutdown_in_progress:
         _log.error("Already shutting down, please be patient...")
         return
@@ -69,7 +71,7 @@ def stop_server(signal, frame):
             cb()
         except:
             _log.exception("Failed to execute callback %s on app shutdown", str(cb))
-    
+
     _log.info("Execution complete, bye!")
     sys.exit(0)
 

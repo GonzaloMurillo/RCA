@@ -1,5 +1,7 @@
-<h1>Auto-Support Location</h1>
-<p>This tool can analyze Auto-Support files from various locations. Choose any one and provide the necessary inputs.</p>
+<h1>ASUP File Location</h1>
+<p>This tool can analyze an ASUP file and display information about the replication contexts found in the ASUP.<br>
+It identifies bottlenecks by analyzing the time spent by each function performed within the replication context.</p>
+<p>Please choose an option for providing the ASUP file:</p>
 
 <form clrForm>
   <clr-input-container #asupFileUploadContainer>
@@ -14,14 +16,14 @@
     <clr-control-helper>Select an ASUP file locally on your laptop.</clr-control-helper>
     <clr-control-error>Browse for a file to be uploaded for analysis</clr-control-error>
   </clr-input-container>
-
+<!--
   <clr-input-container #asupFileAutoCoresPathContainer>
     <label class="clr-col-xs-12 clr-col-md-3" (click)="asupFileSpecificationMethod='autoCores'">
       <clr-radio-wrapper class="radio-in-label">
         <input type="radio" clrRadio name="asupFileSpecificationMethod" value="autoCores" [(ngModel)]="asupFileSpecificationMethod"
           (change)="clearAllFieldsInvalidMarker()">
       </clr-radio-wrapper>
-      Use from /auto/cores share
+      Use an ASUP file from /auto/cores share
     </label>
     <input class="clr-col-xs-12 clr-col-md-8" clrInput name="asupFileAutoCoresPath" [(ngModel)]="asupFileAutoCoresPath"
       placeholder="/auto/cores/" />
@@ -41,7 +43,7 @@
     <clr-control-helper>Serial number of the Data Domain system</clr-control-helper>
     <clr-control-error>Enter a valid Data Domain serial number</clr-control-error>
   </clr-input-container>
-
+-->
   <br />
 
   <button class="btn btn-primary" type="submit" (click)="selectAsupAndProceed()">

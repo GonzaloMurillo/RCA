@@ -34,8 +34,7 @@ def start_flask_server():
     '''
     global flask_app
     from rest_api_server import app
-    #app.config['STATIC_FOLDER']='C:\\gonzalobackend\\ctxdoing\\backend\\static\\' # gonzalo
-
+    
     flask_app = app
 
     from werkzeug.serving import make_server

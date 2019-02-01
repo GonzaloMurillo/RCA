@@ -97,7 +97,7 @@ class DataDomain():
             temporal_list.append(temporal_context) # temporal context here contains a dictionary with the full information of a context, so we add to the list
             temporal_context={} # we clear the dictionary as we are going to iterate to the next context
         self.replication_contexts=temporal_list # when we have finish we update the class attribute replication_contexts
-        _log.info("This is the list of replication contexts found {}".format(self.replication_contexts))
+        _log.debug("This is the list of replication contexts found {}".format(self.replication_contexts))
     # This function transfor the context passed as a parameter in a dictionary in the form required by the asup_analysis_apis.py
     #context={'ctx': 1,
     #             'source': {
@@ -136,9 +136,10 @@ class DataDomain():
     # We use this function for creating an structure of just the contexts that need to be displayed in the get_repl_ctx_list_frontend
     # Those contexts are the contexts from which we hace Lrepl client time stats
     def populate_replication_contexts_frontend(self):
-        _log.info("Num of replication contexts:{}".format(self.num_of_replication_contexts))
+        self.replication_contexts_frontend=[] # Initialization to avoid multiple contexts to be displayed if we click "back" in the browser
+        _log.debug("Num of replication contexts:{}".format(self.num_of_replication_contexts))
         for context in self.replication_contexts:
-            _log.info("A context that we are trying to identify if is useful for the front-end:{}".format(context['ctx_number']))  #Is useful if it is a context that we have lrepl client time stats data.
+            _log.debug("A context that we are trying to identify if is useful for the front-end:{}".format(context['ctx_number']))  #Is useful if it is a context that we have lrepl client time stats data.
             if(self.is_source_context(context['ctx_number'])):
                 self.replication_contexts_frontend.append(self.get_repl_ctx_list_frontend(context['ctx_number'])) # Asi solo si son secuenciales los contextos
 
@@ -147,17 +148,17 @@ class DataDomain():
     # because there are too many contexts and lrepl client time stats is not calculated for all of them, or because all the metrics are 0
     def is_source_context(self,i):
         total=0
-        _log.info("Information of Lrepl client time stats {}".format(self.lrepl_client_time_stats))
+        _log.debug("Information of Lrepl client time stats {}".format(self.lrepl_client_time_stats))
         context_string="rctx://"+str(i)
 
-        _log.info("Searching for context:{}".format(context_string))
-        _log.info("We are searching in: {}".format(self.lrepl_client_time_stats))
+        _log.debug("Searching for context:{}".format(context_string))
+        _log.debug("We are searching in: {}".format(self.lrepl_client_time_stats))
 
         for read_context in self.lrepl_client_time_stats:
 
-            _log.info("Context string:{} compared with {}".format(context_string,read_context[0]))
+            _log.debug("Context string:{} compared with {}".format(context_string,read_context[0]))
             if(context_string in read_context[0]): # index 0 from the second list is the context number, for the first one is the header
-                _log.info("NICE!:The context:{}, is a replication context we have lrepl client time stats info".format(context_string))
+                _log.debug("NICE!:The context:{}, is a replication context we have lrepl client time stats info".format(context_string))
                 # This is a check to avoid replication context where all the lrepl client time stats added sum 0
                 # Can be commented, if we want to display contexts without lrepl client time stats.
                 for t in range(1,len(read_context)):
@@ -169,7 +170,7 @@ class DataDomain():
         else:
             # At this level of indentation we have traversed all the list and there is no lrepl client time stat information for the context
 
-            _log.info("SORRY!:The context:{}, is a replication context we DO NOT have lrepl client time stats info".format(context_string))
+            _log.debug("SORRY!:The context:{}, is a replication context we DO NOT have lrepl client time stats info".format(context_string))
             return False
 
 
@@ -241,10 +242,10 @@ class DataDomain():
         self.column_name=column_name
         pos=0
         for i in self.lrepl_client_time_stats[0]:
-            _log.info("Searching for position of column:{}".format(column_name))
-            _log.info("Returned:{}".format(i))
+            _log.debug("Searching for position of column:{}".format(column_name))
+            _log.debug("Returned:{}".format(i))
             if(column_name in i): # Sometimes the field name changes for example send_sketches in a DD OS 6.1.1.20 is delta_send_sketches in 5.7.4 and therefore the in, instead of the == operator
-                _log.info("Found in position:{}".format(pos))
+                _log.debug("Found in position:{}".format(pos))
                 return pos
             else:
                 pos=pos+1

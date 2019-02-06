@@ -32,13 +32,13 @@ asup_file_input_method = None
 def asup_file_upload():
     global asup_file_save_path, asup_file_input_method
 
-    _log.info("ASUP file uploaded: %s", request.files)
+    _log.debug("ASUP file uploaded: %s", request.files)
 
     f = request.files['asup']
     asup_file_save_path = os.path.join(app.config['RUNTIME_WORKING_DIR'], f.filename)
     f.save(asup_file_save_path)
     asup_file_input_method = ASUP_FILE_INPUT_METHODS['FILE_UPLOAD']
-    _log.info('[asup_file_input_method=FILE_UPLOAD] ASUP file saved locally as: %s', asup_file_save_path)
+    _log.debug('[asup_file_input_method=FILE_UPLOAD] ASUP file saved locally as: %s', asup_file_save_path)
 
     return (jsonify({}),
             200,
@@ -53,7 +53,7 @@ def asup_file_auto_cores_path():
     data = json.loads(request.data)
     asup_auto_cores_location = data['auto_cores_path']
     asup_file_input_method = ASUP_FILE_INPUT_METHODS['AUTO_CORES_PATH']
-    _log.info('[asup_file_input_method=AUTO_CORES_PATH] ASUP file located at: %s', asup_auto_cores_location)
+    _log.debug('[asup_file_input_method=AUTO_CORES_PATH] ASUP file located at: %s', asup_auto_cores_location)
 
     return (jsonify({}),
             200,
@@ -68,7 +68,7 @@ def asup_file_elysium_serial_number():
     data = json.loads(request.data)
     asup_elysium_serial_number = data['elysium_serial_number']
     asup_file_input_method = ASUP_FILE_INPUT_METHODS['ELYSIUM_SERIAL_NUMBER']
-    _log.info('[asup_file_input_method=ELYSIUM_SERIAL_NUMBER] Serial Number: %s', asup_elysium_serial_number)
+    _log.debug('[asup_file_input_method=ELYSIUM_SERIAL_NUMBER] Serial Number: %s', asup_elysium_serial_number)
 
     return (jsonify({}),
             200,
@@ -80,34 +80,34 @@ def asup_file_elysium_serial_number():
 def replication_contexts_list():
     global selected_replication_contexts, asup_file_input_method,dd # I do convert in global de dd object of class DataDomain
 
-    _log.info(asup_file_input_method)
+    _log.debug(asup_file_input_method)
 
     # Backend for the upload method
 
     if(asup_file_input_method==1): #File has been uploaded
 
-        _log.info(asup_file_save_path)
+        _log.debug(asup_file_save_path)
         asup_file_save_path_escaped=asup_file_save_path.encode("utf-8") # To remove issues with path in Windows
-        _log.info(asup_file_save_path_escaped)
+        _log.debug(asup_file_save_path_escaped)
         dd=DataDomain(asup_file_save_path_escaped) # Most of the backend is done in the class DataDomain, we create an instance
     if request.method == 'GET':
 
-        _log.info("START of the method to display the contexts of the autosuport that has being uploaded")
+        _log.debug("START of the method to display the contexts of the autosuport that has being uploaded")
         repl_ctx_list = []
-        _log.info("Replication Contexts frontend {}".format(dd.replication_contexts_frontend))
+        _log.debug("Replication Contexts frontend {}".format(dd.replication_contexts_frontend))
         for item in dd.replication_contexts_frontend: # In dd.replication_contexts_frontend, we have just the contexts displayed in the frontend, but we want to filter from them just to display source and valid replication contexts
-            _log.info("Searching for just source replication contexts")
+            _log.debug("Searching for just source replication contexts")
             if(dd.is_source_context(item['ctx'])):
-                _log.info("The context{}, is a source replication context".format(item))
+                _log.debug("The context{}, is a source replication context".format(item))
                 # Here we should also add checkings if it is also a valid context like for example if there is lrepl client time stats for that context in the autosupport, because if there a lot of context no all of them are calculated
                 # for now, we simply add to the list:get_repl_ctx_list
-                _log.info("Adding the context number:{} to the list of source and valid replication contexts".format(item))
+                _log.debug("Adding the context number:{} to the list of source and valid replication contexts".format(item))
                 repl_ctx_list.append(item)
 
 
-        _log.info("Found %d source and valid replication contexts", len(repl_ctx_list))
-        _log.info("List to jsonify {}".format(repl_ctx_list))
-        _log.info("END of the method to display the contexts of the autosuport that has being uploaded")
+        _log.debug("Found %d source and valid replication contexts", len(repl_ctx_list))
+        _log.debug("List to jsonify {}".format(repl_ctx_list))
+        _log.debug("END of the method to display the contexts of the autosuport that has being uploaded")
         return (jsonify(repl_ctx_list),
                 200,
                 {'ContentType': 'application/json'})
@@ -127,14 +127,14 @@ def analyze_replication_contexts():
     # Call ctxdoing to analyze selected replication contexts
       # 'data' is a list similar to that returned by ctxdoing.get_repl_ctx_list()
       # result = ctxdoing.analyze_repl_ctx(data)
-      _log.info("START of the method to analyze the contexts provided")
-      _log.info("The selected replication context that need analysis are:{}".format(selected_replication_contexts))
+      _log.debug("START of the method to analyze the contexts provided")
+      _log.debug("The selected replication context that need analysis are:{}".format(selected_replication_contexts))
       resultado=[] # This is the final structure that we are going to build
 
       # We iterate between the selected replication contexts
 
       for itera_dict in selected_replication_contexts: # selected_replication_contexts is the info that comes from the selection context screen
-          _log.info("itera dict:{}".format(itera_dict))
+          _log.debug("itera dict:{}".format(itera_dict))
 
           dic_auxiliar={}
           dic_auxiliar['ctxDetails']=itera_dict # We add to the dic auxiliar the key {'ctxDetails'} that will contain the details of the context
@@ -144,15 +144,15 @@ def analyze_replication_contexts():
           # Now we need to obtain the lrepl_client_time_stats for the context that we are analyzing. That info is already in the DataDomain object because the constructor does
           for i in range(1,len(dd.lrepl_client_time_stats)): # We start in 1, because dd,lrepl_client_time_stats[0], just contains the header
               searching_for="rctx://"+str(itera_dict['ctx'])
-              _log.info("We are searching the Lrepl client time stats of context:{}".format(searching_for))
+              _log.debug("We are searching the Lrepl client time stats of context:{}".format(searching_for))
 
               if(dd.lrepl_client_time_stats[i][0]==searching_for): # We are searching for on one of the specific contexts selected for analysis
-                  _log.info("We have foud the lrepl_client_time_stats of the context {}".format(searching_for))
+                  _log.debug("We have foud the lrepl_client_time_stats of the context {}".format(searching_for))
                   # We found it, so we make the aux_lrepl_client_time_stats equal to the list that corresponds in the dd object
                   aux_lrepl_client_time_stats=dd.lrepl_client_time_stats[i]
                   # And we exit
                   break
-          _log.info("The list aux_lrepl_client_time_stats for the contex:{} now contains{}".format(searching_for,aux_lrepl_client_time_stats))
+          _log.debug("The list aux_lrepl_client_time_stats for the contex:{} now contains{}".format(searching_for,aux_lrepl_client_time_stats))
 
           # We do the maths as we are using relative values instead of relying on the calculation coming in the autosupport
           sum=0
@@ -160,7 +160,7 @@ def analyze_replication_contexts():
 
               sum=sum+int(aux_lrepl_client_time_stats[x])
 
-          _log.info("The total time spent by context {} is {} as calculated by adding together all the values".format(searching_for,sum))
+          _log.debug("The total time spent by context {} is {} as calculated by adding together all the values".format(searching_for,sum))
           total_computed_time=sum
 
           if total_computed_time==0: # We cannot calculate anything if the time of all the metrics is 0, this context has no info
@@ -264,7 +264,7 @@ def analyze_replication_contexts():
           list_ctx_usage_time.append(dic_ctx_usage_time)
           dic_ctx_usage_time={}
 
-          _log.info("What list_ctx_usage_time contains:{}".format(list_ctx_usage_time))
+          _log.debug("What list_ctx_usage_time contains:{}".format(list_ctx_usage_time))
            # TO DO We will have to create the graph here from the info contained in list_ctx_usage_time
            # We build the graph here
 
@@ -281,12 +281,12 @@ def analyze_replication_contexts():
           returned_graph=graph.plot_context(list_ctx_usage_time,os.path.join(save_name_path,save_name))
 
           if(returned_graph==os.path.join(save_name_path,save_name)): # We suceeded to create the graph
-            _log.info("We suceeded to create the graph named:{}".format(save_name))
+            _log.debug("We suceeded to create the graph named:{}".format(save_name))
           else:
-            _log.info("Seems that not all the columns required to plot the graph are there. Name of the graph:{}".format(save_name))
+            _log.debug("Seems that not all the columns required to plot the graph are there. Name of the graph:{}".format(save_name))
 
 
-          _log.info("Name of the graph:{}".format(save_name))
+          _log.debug("Name of the graph:{}".format(save_name))
 
           dic_auxiliar_2={'graphImage': save_name}
 
@@ -303,8 +303,8 @@ def analyze_replication_contexts():
           resultado.append(dic_auxiliar) # And we add to the list resultado, which is the final data structure being processed
 
 
-          _log.info("THE FINAL DATA STRUCTURE BUILD AFTER CONTEXT ANALYSIS IS:{}".format(resultado))
-          _log.info("WE HAVE FINISHED THE ANALYSIS OF %d REPLICATION CONTEXTS",len(resultado))
+          _log.debug("THE FINAL DATA STRUCTURE BUILD AFTER CONTEXT ANALYSIS IS:{}".format(resultado))
+          _log.debug("WE HAVE FINISHED THE ANALYSIS OF %d REPLICATION CONTEXTS",len(resultado))
           # Just as a reference, this is the structure we need to end up having
 
 

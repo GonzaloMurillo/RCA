@@ -43,12 +43,12 @@ def init_logger(log_file_path):
                     'backupCount': 1,     # Keep only a single log file
                 },
                 'console': {
-                    'level': 'INFO',                    # Change this to 'debug' to see all logs on the console while running this app/script
+                    'level': 'DEBUG',                    # Change this to 'debug' to see all logs on the console while running this app/script
                     'class': 'logging.StreamHandler',
                     'formatter': 'console'
                 },
             },
-            
+
             'loggers': {
                 # Add custom logger on a per-package basis here, if required
             },
@@ -66,11 +66,11 @@ def init_logger(log_file_path):
         sys.stderr.write('Failed to initialize logger, aborting execution.\n')
         sys.stderr.write("Ensure that the current user has write permissions in this directory: {}\n".format(os.path.abspath(log_file_path)))
         sys.exit(1)
-    
+
 def get_logger(module_name):
     '''
     Get an instance of a module-level logger
-    
+
     :param module_name: Name of the calling module (use __name__)
     '''
     try:

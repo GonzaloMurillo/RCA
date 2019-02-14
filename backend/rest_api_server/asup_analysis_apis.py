@@ -3,12 +3,12 @@
 
 from flask import jsonify, request
 from rest_api_server import app
-import os
 import random
+import os
 from util import version, logger
 import json
 from dellemc.datadomain import DataDomain
-from dellemc.replicationcontextplot import ReplicationContextPlot
+from dellemc.pdfhelper import PDFHelper
 
 
 _log = logger.get_logger(__name__)
@@ -89,7 +89,11 @@ def replication_contexts_list():
         _log.debug(asup_file_save_path)
         asup_file_save_path_escaped=asup_file_save_path.encode("utf-8") # To remove issues with path in Windows
         _log.debug(asup_file_save_path_escaped)
-        dd=DataDomain(asup_file_save_path_escaped) # Most of the backend is done in the class DataDomain, we create an instance
+        dd=DataDomain()
+        dd.use_asup_file(asup_file_save_path_escaped) # Most of the backend is done in the class DataDomain, we create an instance
+        dd.parse_asup_file_for_replication_contexts_info()
+
+
     if request.method == 'GET':
 
         _log.debug("START of the method to display the contexts of the autosuport that has being uploaded")
@@ -99,8 +103,6 @@ def replication_contexts_list():
             _log.debug("Searching for just source replication contexts")
             if(dd.is_source_context(item['ctx'])):
                 _log.debug("The context{}, is a source replication context".format(item))
-                # Here we should also add checkings if it is also a valid context like for example if there is lrepl client time stats for that context in the autosupport, because if there a lot of context no all of them are calculated
-                # for now, we simply add to the list:get_repl_ctx_list
                 _log.debug("Adding the context number:{} to the list of source and valid replication contexts".format(item))
                 repl_ctx_list.append(item)
 
@@ -124,258 +126,11 @@ def replication_contexts_list():
 # This is where the real analysis of the context happens
 @app.route("/api/asup/analysis/replication_contexts/time_spent", methods=['GET'])
 def analyze_replication_contexts():
-    # Call ctxdoing to analyze selected replication contexts
-      # 'data' is a list similar to that returned by ctxdoing.get_repl_ctx_list()
-      # result = ctxdoing.analyze_repl_ctx(data)
-      _log.debug("START of the method to analyze the contexts provided")
-      _log.debug("The selected replication context that need analysis are:{}".format(selected_replication_contexts))
-      resultado=[] # This is the final structure that we are going to build
+    # Call get_replication_analysis to analyze selected replication contexts
+      _log.debug("Selected contexts for analysis: {}".format(selected_replication_contexts))
 
-      # We iterate between the selected replication contexts
+      final_data_structure=dd.get_replication_analysis(selected_replication_contexts,app)
 
-      for itera_dict in selected_replication_contexts: # selected_replication_contexts is the info that comes from the selection context screen
-          _log.debug("itera dict:{}".format(itera_dict))
-
-          dic_auxiliar={}
-          dic_auxiliar['ctxDetails']=itera_dict # We add to the dic auxiliar the key {'ctxDetails'} that will contain the details of the context
-          list_ctx_usage_time=[] # This list will contain the context lrepl client time stats values
-
-          aux_lrepl_client_time_stats=[] # This list is going to content the lrepl client time stats of that particular context
-          # Now we need to obtain the lrepl_client_time_stats for the context that we are analyzing. That info is already in the DataDomain object because the constructor does
-          for i in range(1,len(dd.lrepl_client_time_stats)): # We start in 1, because dd,lrepl_client_time_stats[0], just contains the header
-              searching_for="rctx://"+str(itera_dict['ctx'])
-              _log.debug("We are searching the Lrepl client time stats of context:{}".format(searching_for))
-
-              if(dd.lrepl_client_time_stats[i][0]==searching_for): # We are searching for on one of the specific contexts selected for analysis
-                  _log.debug("We have foud the lrepl_client_time_stats of the context {}".format(searching_for))
-                  # We found it, so we make the aux_lrepl_client_time_stats equal to the list that corresponds in the dd object
-                  aux_lrepl_client_time_stats=dd.lrepl_client_time_stats[i]
-                  # And we exit
-                  break
-          _log.debug("The list aux_lrepl_client_time_stats for the contex:{} now contains{}".format(searching_for,aux_lrepl_client_time_stats))
-
-          # We do the maths as we are using relative values instead of relying on the calculation coming in the autosupport
-          sum=0
-          for x in range(2,len(aux_lrepl_client_time_stats)): # we start in 2, because 0, is the ctx number, and 1 is the calculated by the dd lrepl client time stats, we do not trust it as it fails from time to time, so we add the times together ourselves
-
-              sum=sum+int(aux_lrepl_client_time_stats[x])
-
-          _log.debug("The total time spent by context {} is {} as calculated by adding together all the values".format(searching_for,sum))
-          total_computed_time=sum
-
-          if total_computed_time==0: # We cannot calculate anything if the time of all the metrics is 0, this context has no info
-            total_computed_time=0.0001 # to ovoid division by zero, but we have to decide what to do with this repliation context (no displaying them or greyed out)
-
-          aux_lrepl_client_time_stats[1]=total_computed_time # We assign the computed time to the aux_lrepl_client_time_stats, if it is 0 or if it is not
-
-          # We are using dic_ctx_usage_time as the auxiliar context where we are putting all the information about each key, before adding it to list_ctx_usage_time
-          dic_ctx_usage_time={}
-          dic_ctx_usage_time={'key':'Total time spent by the replication context','value':total_computed_time,'unit': 'seconds'}
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time sending references. Problems with float operations and number of digits after the '.' I need to figure a better way. decimal module?
-          # For making this inter DD OS version, we have coded the give_me_position_in_header_of Function
-          # The problem is that between DD OS ASUPS, sometime the headers of the lrepl client time stats do not store the value for a key in the same positional column
-          # therefore we need to obtain first in which position it is the right information, if we do not want to plot things that are not accurate.
-          # if the function returns -1 is that they key has not being found
-          # It is a good idea probably to assign a key to 0 if it has not being found
-
-          position=dd.give_me_position_in_header_of('send_refs')
-          tsr_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={'key': 'Time sending references', 'value':tsr_percentage,'unit': '%' }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time sending segments
-          position=dd.give_me_position_in_header_of('send_segs')
-          tss_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={'key': 'Time sending segments', 'value':tss_percentage, 'unit': '%' }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time receiving references
-          position=dd.give_me_position_in_header_of('recv_refs')
-          trr_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time receiving references", "value": trr_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time waiting for references from destination
-          position=dd.give_me_position_in_header_of('recv_refs_sleep')
-          twrd_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time waiting for references from destination", "value": twrd_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time waiting getting references
-          position=dd.give_me_position_in_header_of('get_refs')
-          twgr_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time waiting getting references", "value": twgr_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time local reading segments
-          position=dd.give_me_position_in_header_of('read_segs')
-          tlls_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time local reading segments", "value": tlls_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time sending small files
-          position=dd.give_me_position_in_header_of('send_small_file')
-          tsmf_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time sending small files", "value": tsmf_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time sending sketches
-          position=dd.give_me_position_in_header_of('send_sketches')
-          tse_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time sending sketches", "value": tse_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time receiving bases
-          position=dd.give_me_position_in_header_of('recv_bases')
-          trb_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time receiving bases", "value": tse_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time reading bases
-          position=dd.give_me_position_in_header_of('read_bases')
-          treadb_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time reading bases", "value": treadb_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time getting chunk info
-          position=dd.give_me_position_in_header_of('get_chunk_info')
-          tgci_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time getting chunk info", "value": tgci_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time unpacking chunks of info
-          position=dd.give_me_position_in_header_of('unpack_chunks')
-          tupi_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time unpacking chunks of info", "value": tupi_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          _log.debug("What list_ctx_usage_time contains:{}".format(list_ctx_usage_time))
-           # TO DO We will have to create the graph here from the info contained in list_ctx_usage_time
-           # We build the graph here
-
-
-          #save_name=os.path.join(app.config['RUNTIME_WORKING_DIR']+"\\graphs", "ctxgraph"+str(random_number)+".png") # This writes in the backend, if I write in the frontend it keeps refreshing
-
-          #save_name="C:\\DDTOOLS-master\\ctxdoing-master-branch\\ctxdoing\\backend\\static\\"+"ctxgraph"+graph.random_name(5)+".png"
-          graph=ReplicationContextPlot()
-          #save_name="C:\\DDTOOLS-master\\ctxdoing-master-branch\\ctxdoing\\frontend\\ctxdoing\\src\\assets\\"+"ctxplot"+"-"+graph.random_name(5)+".png"
-
-          save_name_path=app.config['STATIC_DIR_PATH']
-          save_name="ctxplot"+"-"+graph.random_name(5)+".png" # We create a random name 5 characters long
-
-          returned_graph=graph.plot_context(list_ctx_usage_time,os.path.join(save_name_path,save_name))
-
-          if(returned_graph==os.path.join(save_name_path,save_name)): # We suceeded to create the graph
-            _log.debug("We suceeded to create the graph named:{}".format(save_name))
-          else:
-            _log.debug("Seems that not all the columns required to plot the graph are there. Name of the graph:{}".format(save_name))
-
-
-          _log.debug("Name of the graph:{}".format(save_name))
-
-          dic_auxiliar_2={'graphImage': save_name}
-
-          dic_auxiliar.update(dic_auxiliar_2)
-          """
-          # This is how it was originally pointing to a resource under frontend src
-          #dic_auxiliar_2={'graphImage': 'assets/ctxgraph93808.png'}
-          #dic_auxiliar.update(dic_auxiliar_2)
-          """
-
-          # END OF THE GRAPH, we keep adding what is remaining
-          dic_auxiliar.update(dic_ctx_usage_time) # Method update of the dictionary dict.update(dict2) what it does it do add dict2´s key-values pair in to dict (like removing one nexted dictionary)
-          dic_auxiliar['ctxUsageTime']=list_ctx_usage_time # And now we add the key 'ctxUsageTime'
-          resultado.append(dic_auxiliar) # And we add to the list resultado, which is the final data structure being processed
-
-
-          _log.debug("THE FINAL DATA STRUCTURE BUILD AFTER CONTEXT ANALYSIS IS:{}".format(resultado))
-          _log.debug("WE HAVE FINISHED THE ANALYSIS OF %d REPLICATION CONTEXTS",len(resultado))
-          # Just as a reference, this is the structure we need to end up having
-
-
-          """result = [
-                {
-                  'ctxDetails': {
-                     'ctx': 1,
-                     'source': {
-                         'host': 'dd390gcsr01.nam.nsroot.net',
-                         'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu1_rep'#he quitado una coma
-                         },
-                     'destination': {
-                         'host': 'dd390gcsr02.nam.nsroot.net',
-                         'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu1_rep'
-                        }
-                    },
-                  # Save PNG generated by matplotlib in app.config['STATIC_DIR_PATH'] andgive it a UUID
-                  # Then set this path to /static/img-uuid-here.png
-                  'graphImage': 'assets/replicationgraph.png',
-                  'ctxUsageTime': [
-                    { "key": "Total time spent by the replication context", "value": "11362471", "unit": "seconds" },
-                    { "key": "Time sending references", "value": "0.2", "unit": "%" },
-                    { "key": "Time sending segments", "value": "1.5", "unit": "%" },
-                    { "key": "Time receiving references", "value": "0.4", "unit": "%" },
-                    { "key": "Time waiting for references from destination", "value": "1.4", "unit": "%" },
-                    { "key": "Time waiting getting references", "value": "2.9", "unit": "%" },
-                    { "key": "Time local reading segments", "value": "93.6", "unit": "%" },
-                    { "key": "Time sending small files", "value": "0.0", "unit": "%" },
-                    { "key": "Time sending sketches", "value": "0.0", "unit": "%" },
-                    { "key": "Time receiving bases", "value": "0.0", "unit": "%" },
-                    { "key": "Time reading bases", "value": "0.0", "unit": "%" },
-                    { "key": "Time getting chunk info", "value": "0.0", "unit": "%" },
-                    { "key": "Time unpacking chunks of info", "value": "0.0", "unit": "%" }
-                  ]
-                },
-                'ctxDetails': {
-                   'ctx': 2,
-                   'source': {
-                       'host': 'dd390gcsr01.nam.nsroot.net',
-                       'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu1_rep'#he quitado una coma
-                       },
-                   'destination': {
-                       'host': 'dd390gcsr02.nam.nsroot.net',
-                       'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu1_rep'
-                      }
-                  },
-                # Save PNG generated by matplotlib in app.config['STATIC_DIR_PATH'] andgive it a UUID
-                # Then set this path to /static/img-uuid-here.png
-                'graphImage': 'assets/replicationgraph.png',
-                'ctxUsageTime': [
-                  { "key": "Total time spent by the replication context", "value": "11362471", "unit": "seconds" },
-                  { "key": "Time sending references", "value": "0.2", "unit": "%" },
-                  { "key": "Time sending segments", "value": "1.5", "unit": "%" },
-                  { "key": "Time receiving references", "value": "0.4", "unit": "%" },
-                  { "key": "Time waiting for references from destination", "value": "1.4", "unit": "%" },
-                  { "key": "Time waiting getting references", "value": "2.9", "unit": "%" },
-                  { "key": "Time local reading segments", "value": "93.6", "unit": "%" },
-                  { "key": "Time sending small files", "value": "0.0", "unit": "%" },
-                  { "key": "Time sending sketches", "value": "0.0", "unit": "%" },
-                  { "key": "Time receiving bases", "value": "0.0", "unit": "%" },
-                  { "key": "Time reading bases", "value": "0.0", "unit": "%" },
-                  { "key": "Time getting chunk info", "value": "0.0", "unit": "%" },
-                  { "key": "Time unpacking chunks of info", "value": "0.0", "unit": "%" }
-                ]
-              }
-
-
-            ]
-      """
-
-
-      return (jsonify(resultado),
+      return (jsonify(final_data_structure),
               200,
               {'ContentType': 'application/json'})

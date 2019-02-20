@@ -38,7 +38,7 @@ def asup_file_upload():
     asup_file_save_path = os.path.join(app.config['RUNTIME_WORKING_DIR'], f.filename)
     f.save(asup_file_save_path)
     asup_file_input_method = ASUP_FILE_INPUT_METHODS['FILE_UPLOAD']
-    _log.debug('[asup_file_input_method=FILE_UPLOAD] ASUP file saved locally as: %s', asup_file_save_path)
+    _log.info('[asup_file_input_method=FILE_UPLOAD] ASUP file saved locally as: %s', asup_file_save_path)
 
     return (jsonify({}),
             200,
@@ -53,7 +53,7 @@ def asup_file_auto_cores_path():
     data = json.loads(request.data)
     asup_auto_cores_location = data['auto_cores_path']
     asup_file_input_method = ASUP_FILE_INPUT_METHODS['AUTO_CORES_PATH']
-    _log.debug('[asup_file_input_method=AUTO_CORES_PATH] ASUP file located at: %s', asup_auto_cores_location)
+    _log.info('[asup_file_input_method=AUTO_CORES_PATH] ASUP file located at: %s', asup_auto_cores_location)
 
     return (jsonify({}),
             200,
@@ -68,7 +68,7 @@ def asup_file_elysium_serial_number():
     data = json.loads(request.data)
     asup_elysium_serial_number = data['elysium_serial_number']
     asup_file_input_method = ASUP_FILE_INPUT_METHODS['ELYSIUM_SERIAL_NUMBER']
-    _log.debug('[asup_file_input_method=ELYSIUM_SERIAL_NUMBER] Serial Number: %s', asup_elysium_serial_number)
+    _log.info('[asup_file_input_method=ELYSIUM_SERIAL_NUMBER] Serial Number: %s', asup_elysium_serial_number)
 
     return (jsonify({}),
             200,

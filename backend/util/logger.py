@@ -43,7 +43,7 @@ def init_logger(log_file_path):
                     'backupCount': 1,     # Keep only a single log file
                 },
                 'console': {
-                    'level': 'DEBUG',                    # Change this to 'debug' to see all logs on the console while running this app/script
+                    'level': 'INFO',                    # Change this to 'debug' to see all logs on the console while running this app/script
                     'class': 'logging.StreamHandler',
                     'formatter': 'console'
                 },

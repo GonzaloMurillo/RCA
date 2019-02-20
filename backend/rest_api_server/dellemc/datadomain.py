@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # coding=utf-8
 from util import version, logger
-from replicationcontextplot import ReplicationContextPlot
-from pdfhelper import PDFHelper
+from rest_api_server.dellemc.replicationcontextplot import ReplicationContextPlot
+# from pdfhelper import PDFHelper
 import os
 _log = logger.get_logger(__name__)
 

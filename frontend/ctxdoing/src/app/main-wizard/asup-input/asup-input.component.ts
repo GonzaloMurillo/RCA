@@ -79,7 +79,7 @@ export class AsupInputComponent implements OnInit {
 
               if (this.filesUploaded == this.localAsupFileUpload.length) {
                 // Navigate to the next page
-                this.router.navigate(['replication-ctx-selection']);
+                this.router.navigate(['asup-select']);
               }
             },
             error => {

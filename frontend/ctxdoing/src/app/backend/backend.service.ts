@@ -18,6 +18,11 @@ export interface AsupFileElysiumSerialNumber {
   elysium_serial_number: string;
 };
 
+export interface AsupFileMetadata {
+  filePath: string;
+  generatedDate: string;
+}
+
 export interface ReplicationContext {
   ctx: number,
   source: {
@@ -50,6 +55,7 @@ export class BackendService {
     asupFileUpload: 'api/asup/file',  // POST with FormData
     asupFileAutoCoresLocation: 'api/asup/auto_cores_path',  // POST with AsupFileAutoCoresLocation
     asupFileElysiumSerialNumber: 'api/asup/elysium_serial_number',  // POST with AsupFileElysiumSerialNumber
+    asupFilesList: 'api/asup/list', // GET
 
     replicationContextsList: '/api/asup/analysis/replication_contexts', // GET, POST with ReplicationContext[]
     replicationContextAnalysisResult: '/api/asup/analysis/replication_contexts/time_spent', // GET with ReplicationContextAnalysisResult[]
@@ -123,6 +129,20 @@ export class BackendService {
     return this.http.post(this.urls.asupFileElysiumSerialNumber, payload)
       .pipe(
         catchError(this.handleError('postAsupElysiumSerialNumber'))
+      );
+  }
+
+  getAsupFilesList(): Observable<AsupFileMetadata[]> {
+    return this.http.get<AsupFileMetadata[]>(this.urls.asupFilesList)
+      .pipe(
+        catchError(this.handleError('getAsupFilesList'))
+      );
+  }
+
+  setSelectedAsupFilesList(list: AsupFileMetadata[]) {
+    return this.http.post<AsupFileMetadata[]>(this.urls.asupFilesList, list)
+      .pipe(
+        catchError(this.handleError('setSelectedAsupFilesList'))
       );
   }
 

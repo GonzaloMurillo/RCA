@@ -7,14 +7,14 @@ import random
 import os
 from util import version, logger
 import json
-from dellemc.datadomain import DataDomain
-from dellemc.pdfhelper import PDFHelper
+from rest_api_server.dellemc.datadomain import DataDomain
+# from pdfhelper import PDFHelper
 
 
 _log = logger.get_logger(__name__)
 
 # Globals - Move to ctxdoing class/object
-asup_file_save_path = None
+asup_file_save_path = []
 asup_auto_cores_location = None
 asup_elysium_serial_number = None
 selected_replication_contexts = None
@@ -35,10 +35,11 @@ def asup_file_upload():
     _log.debug("ASUP file uploaded: %s", request.files)
 
     f = request.files['asup']
-    asup_file_save_path = os.path.join(app.config['RUNTIME_WORKING_DIR'], f.filename)
-    f.save(asup_file_save_path)
+    file_save_path = os.path.join(app.config['RUNTIME_WORKING_DIR'], f.filename)
+    f.save(file_save_path)
+    asup_file_save_path.append(file_save_path)
     asup_file_input_method = ASUP_FILE_INPUT_METHODS['FILE_UPLOAD']
-    _log.info('[asup_file_input_method=FILE_UPLOAD] ASUP file saved locally as: %s', asup_file_save_path)
+    _log.info('[asup_file_input_method=FILE_UPLOAD] ASUP file saved locally as: %s', file_save_path)
 
     return (jsonify({}),
             200,
@@ -87,7 +88,9 @@ def replication_contexts_list():
     if(asup_file_input_method==1): #File has been uploaded
 
         _log.debug(asup_file_save_path)
-        asup_file_save_path_escaped=asup_file_save_path.encode("utf-8") # To remove issues with path in Windows
+        # TODO: asup_file_save_path is now a list of paths, the DataDomain class
+        #       to support multiple ASUP files and calculate using a range
+        asup_file_save_path_escaped=asup_file_save_path[0].encode("utf-8") # To remove issues with path in Windows
         _log.debug(asup_file_save_path_escaped)
         dd=DataDomain()
         dd.use_asup_file(asup_file_save_path_escaped) # Most of the backend is done in the class DataDomain, we create an instance

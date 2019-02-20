@@ -20,6 +20,7 @@ export class AsupInputComponent implements OnInit {
 
   asupFileSpecificationMethod: string = 'upload';
   localAsupFileUpload: any;
+  filesUploaded: number = 0;
   asupFileAutoCoresPath: string = '';
   asupFromElysiumSerialNumber: string = '';
 
@@ -30,14 +31,14 @@ export class AsupInputComponent implements OnInit {
   }
 
   /**
-   * Set the local variable to the file name. 
-   * Does not actually upload the file - this is done later on form submit.
+   * Set the local variable to the file names. 
+   * Does not actually upload the files - this is done later on form submit.
    * 
-   * @param files List of file selected for upload (should be a single file for now)
+   * @param files List of file selected for upload
    */
   onUploadAsupFile(files: FileList) {
-    this.log.info("Selected local ASUP file for upload: ", files);
-    this.localAsupFileUpload = files.item(0);
+    this.log.info("Selected local ASUP file(s) for upload: ", files);
+    this.localAsupFileUpload = files;
     this.clearAllFieldsInvalidMarker();
   }
 
@@ -47,7 +48,7 @@ export class AsupInputComponent implements OnInit {
   clearAllFieldsInvalidMarker() {
     this.asupFileUploadContainer.invalid = false;
     this.asupFileAutoCoresPathContainer.invalid = false;
-    this.asupFromElysiumSerialNumberContainer.invalid = false;
+    // this.asupFromElysiumSerialNumberContainer.invalid = false;
   }
 
   /**
@@ -69,16 +70,23 @@ export class AsupInputComponent implements OnInit {
 
     switch (this.asupFileSpecificationMethod) {
       case 'upload': {
-        this.backend.postAsupFile(this.localAsupFileUpload).subscribe(
-          data => {
-            this.log.info("Successfully uploaded ASUP file '", this.localAsupFileUpload, "' to backend");
-            // Navigate to the next page
-            this.router.navigate(['replication-ctx-selection']);
-          },
-          error => {
-            this.errorDialog.showError("Failed to upload ASUP file: " + error);
-          }
-        );
+        for (var _i = 0; _i < this.localAsupFileUpload.length; _i++) {
+          this.backend.postAsupFile(this.localAsupFileUpload[_i]).subscribe(
+            data => {
+              // Don't try to access _i here, since we are inside an async callback
+              this.log.info("Successfully uploaded ASUP file to backend");
+              this.filesUploaded++;
+
+              if (this.filesUploaded == this.localAsupFileUpload.length) {
+                // Navigate to the next page
+                this.router.navigate(['replication-ctx-selection']);
+              }
+            },
+            error => {
+              this.errorDialog.showError("Failed to upload ASUP file(s) : " + error);
+            }
+          );
+        }
 
         break;
       }

@@ -3,21 +3,22 @@
 
 from flask import jsonify, request
 from rest_api_server import app
-import random
+import datetime
 import os
 from util import version, logger
 import json
-from dellemc.datadomain import DataDomain
-from dellemc.pdfhelper import PDFHelper
+from rest_api_server.dellemc.datadomain import DataDomain
+# from pdfhelper import PDFHelper
 
 
 _log = logger.get_logger(__name__)
 
 # Globals - Move to ctxdoing class/object
-asup_file_save_path = None
+asup_file_save_path = []
 asup_auto_cores_location = None
 asup_elysium_serial_number = None
 selected_replication_contexts = None
+selected_asup_files = []
 
 ASUP_FILE_INPUT_METHODS = {
     'FILE_UPLOAD': 1,
@@ -28,17 +29,24 @@ asup_file_input_method = None
 
 # This is for autosupport being provided as an upload
 
-@app.route("/api/asup/file", methods=['POST'])
+@app.route("/api/asup/file", methods=['POST', 'DELETE'])
 def asup_file_upload():
-    global asup_file_save_path, asup_file_input_method
+    global asup_file_save_path, asup_file_input_method, selected_asup_files
 
-    _log.debug("ASUP file uploaded: %s", request.files)
+    if request.method == 'POST':
+        _log.debug("ASUP file uploaded: %s", request.files)
 
-    f = request.files['asup']
-    asup_file_save_path = os.path.join(app.config['RUNTIME_WORKING_DIR'], f.filename)
-    f.save(asup_file_save_path)
-    asup_file_input_method = ASUP_FILE_INPUT_METHODS['FILE_UPLOAD']
-    _log.info('[asup_file_input_method=FILE_UPLOAD] ASUP file saved locally as: %s', asup_file_save_path)
+        f = request.files['asup']
+        file_save_path = os.path.join(app.config['RUNTIME_WORKING_DIR'], f.filename)
+        f.save(file_save_path)
+        asup_file_save_path.append(file_save_path)
+        asup_file_input_method = ASUP_FILE_INPUT_METHODS['FILE_UPLOAD']
+        _log.info('[asup_file_input_method=FILE_UPLOAD] ASUP file saved locally as: %s', file_save_path)
+
+    elif request.method == 'DELETE':
+        _log.info("Reset uploaded ASUP files")
+        asup_file_save_path = []
+        selected_asup_files = []
 
     return (jsonify({}),
             200,
@@ -74,11 +82,46 @@ def asup_file_elysium_serial_number():
             200,
             {'ContentType': 'application/json'})
 
+@app.route("/api/asup/list", methods=['GET', 'POST'])
+def asup_files_list():
+    '''
+    For the selected input method, open each ASUP file and return a list of
+    all ASUP files with their metadata.
+    This API is used by the GUI to select which ASUP file(s) are to be analyzed
+
+    :return: List of dicts
+    '''
+    global asup_file_input_method, asup_file_save_path, selected_asup_files
+
+    if request.method == 'GET':
+        asup_files = []
+        if ASUP_FILE_INPUT_METHODS['FILE_UPLOAD'] == asup_file_input_method:
+            for f in asup_file_save_path:
+                asup_file_metadata = {
+                    'filePath': os.path.basename(f),
+                    'generatedDate': str(datetime.datetime.now()) # TODO: Get generated date by reading ASUP file
+                }
+                asup_files.append(asup_file_metadata)
+
+        return (jsonify(asup_files),
+                200,
+                {'ContentType': 'application/json'})
+
+    elif request.method == 'POST':
+        selected_asup_files = json.loads(request.data)
+        _log.info("Selected ASUP files for analysis: %s", selected_asup_files)
+
+        return (jsonify({}),
+                200,
+                {'ContentType': 'application/json'})
+
+
 # Displaying just the source (and valid) replication context from the autosupport
 
 @app.route("/api/asup/analysis/replication_contexts", methods=['GET', 'POST'])
 def replication_contexts_list():
-    global selected_replication_contexts, asup_file_input_method,dd # I do convert in global de dd object of class DataDomain
+    global selected_replication_contexts, asup_file_input_method, dd, selected_asup_files
+    # I do convert in global de dd object of class DataDomain
 
     _log.debug(asup_file_input_method)
 
@@ -86,8 +129,10 @@ def replication_contexts_list():
 
     if(asup_file_input_method==1): #File has been uploaded
 
-        _log.debug(asup_file_save_path)
-        asup_file_save_path_escaped=asup_file_save_path.encode("utf-8") # To remove issues with path in Windows
+        _log.debug(selected_asup_files)
+        # TODO: selected_asup_files is list of dicts, the DataDomain class
+        #       to support multiple ASUP files and calculate using a range
+        asup_file_save_path_escaped=selected_asup_files[0]['filePath'].encode("utf-8") # To remove issues with path in Windows
         _log.debug(asup_file_save_path_escaped)
         dd=DataDomain()
         dd.use_asup_file(asup_file_save_path_escaped) # Most of the backend is done in the class DataDomain, we create an instance

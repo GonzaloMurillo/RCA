@@ -114,7 +114,7 @@ class PDFHelper():
                             report_line="{}: {:.2f} {}".format(sub_element['key'],sub_element['value'],sub_element['unit'])
                             pdf_report.set_font('Arial', 'B', 7)
                             value_limited="{:.2f}".format(sub_element['value'])
-                            print "comparando {} con {}".format(str(value_limited),str(maximum))
+                            print("comparando {} con {}".format(str(value_limited),str(maximum)))
 
                             # If it is the maximum value, we paint it red
                             if str(value_limited.strip())==str(maximum.strip()):

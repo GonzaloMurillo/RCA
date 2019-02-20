@@ -1,0 +1,35 @@
+<h1>Select Auto-Support file(s)</h1>
+<p>Please select the ASUP files that you want to analyze:</p>
+<div class="alert alert-info" role="alert">
+  <div class="alert-items">
+      <div class="alert-item static">
+          <div class="alert-icon-wrapper">
+              <clr-icon class="alert-icon" shape="info-circle"></clr-icon>
+          </div>
+          <span class="alert-text">
+              If a single ASUP file is selected, analysis will be based on a single data point.
+              <br/>
+              If two ASUP files are selected, analysis will be based on a delta between the time range of both ASUPs. 
+          </span>
+      </div>
+  </div>
+</div>
+<clr-datagrid [(clrDgSelected)]="selectedRows">
+    <clr-dg-column clrDgField="filePath">ASUP File</clr-dg-column>
+    <clr-dg-column clrDgField="generatedDate">Generated On</clr-dg-column>
+
+    <clr-dg-row *clrDgItems="let row of asupFiles" [clrDgItem]="row">
+        <clr-dg-cell>{{row.filePath}}</clr-dg-cell>
+        <clr-dg-cell>{{row.generatedDate | date:'dd/MMM/yyyy h:mm:ss a'}}</clr-dg-cell>
+    </clr-dg-row>
+
+    <clr-dg-footer>{{selectedRows.length}} ASUP file(s) will be anlyzed.</clr-dg-footer>
+</clr-datagrid>
+
+<br />
+
+<button class="btn btn-primary" type="button" (click)="selectAsupFilesAndProceed()">
+  <clr-icon shape="search"></clr-icon> Analyze
+</button>
+
+<app-error-dialog #errorDialog></app-error-dialog>

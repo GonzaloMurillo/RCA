@@ -36,6 +36,6 @@ _log.debug("RUNTIME_WORKING_DIR: %s", app.config['RUNTIME_WORKING_DIR'])
 _log.debug("STATIC_DIR_PATH: %s", app.config['STATIC_DIR_PATH'])
 
 # Import other Flask sub-modules containing URL handlers
-import default_routes
-import common_apis
-import asup_analysis_apis
+import rest_api_server.default_routes
+import rest_api_server.common_apis
+import rest_api_server.asup_analysis_apis

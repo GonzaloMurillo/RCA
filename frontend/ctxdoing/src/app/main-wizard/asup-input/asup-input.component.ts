@@ -70,23 +70,30 @@ export class AsupInputComponent implements OnInit {
 
     switch (this.asupFileSpecificationMethod) {
       case 'upload': {
-        for (var _i = 0; _i < this.localAsupFileUpload.length; _i++) {
-          this.backend.postAsupFile(this.localAsupFileUpload[_i]).subscribe(
-            data => {
-              // Don't try to access _i here, since we are inside an async callback
-              this.log.info("Successfully uploaded ASUP file to backend");
-              this.filesUploaded++;
-
-              if (this.filesUploaded == this.localAsupFileUpload.length) {
-                // Navigate to the next page
-                this.router.navigate(['asup-select']);
-              }
-            },
-            error => {
-              this.errorDialog.showError("Failed to upload ASUP file(s) : " + error);
+        this.backend.resetAsupFileUpload().subscribe(
+          data => {
+            for (var _i = 0; _i < this.localAsupFileUpload.length; _i++) {
+              this.backend.postAsupFile(this.localAsupFileUpload[_i]).subscribe(
+                data => {
+                  // Don't try to access _i here, since we are inside an async callback
+                  this.log.info("Successfully uploaded ASUP file to backend");
+                  this.filesUploaded++;
+    
+                  if (this.filesUploaded == this.localAsupFileUpload.length) {
+                    // Navigate to the next page
+                    this.router.navigate(['asup-select']);
+                  }
+                },
+                error => {
+                  this.errorDialog.showError("Failed to upload ASUP file(s): " + error);
+                }
+              );
             }
-          );
-        }
+          },
+          error => {
+            this.errorDialog.showError("Failed to reset upload state on the backend: " + error);
+          }
+        );
 
         break;
       }

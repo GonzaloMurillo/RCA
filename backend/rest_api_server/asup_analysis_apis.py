@@ -29,18 +29,24 @@ asup_file_input_method = None
 
 # This is for autosupport being provided as an upload
 
-@app.route("/api/asup/file", methods=['POST'])
+@app.route("/api/asup/file", methods=['POST', 'DELETE'])
 def asup_file_upload():
-    global asup_file_save_path, asup_file_input_method
+    global asup_file_save_path, asup_file_input_method, selected_asup_files
 
-    _log.debug("ASUP file uploaded: %s", request.files)
+    if request.method == 'POST':
+        _log.debug("ASUP file uploaded: %s", request.files)
 
-    f = request.files['asup']
-    file_save_path = os.path.join(app.config['RUNTIME_WORKING_DIR'], f.filename)
-    f.save(file_save_path)
-    asup_file_save_path.append(file_save_path)
-    asup_file_input_method = ASUP_FILE_INPUT_METHODS['FILE_UPLOAD']
-    _log.info('[asup_file_input_method=FILE_UPLOAD] ASUP file saved locally as: %s', file_save_path)
+        f = request.files['asup']
+        file_save_path = os.path.join(app.config['RUNTIME_WORKING_DIR'], f.filename)
+        f.save(file_save_path)
+        asup_file_save_path.append(file_save_path)
+        asup_file_input_method = ASUP_FILE_INPUT_METHODS['FILE_UPLOAD']
+        _log.info('[asup_file_input_method=FILE_UPLOAD] ASUP file saved locally as: %s', file_save_path)
+
+    elif request.method == 'DELETE':
+        _log.info("Reset uploaded ASUP files")
+        asup_file_save_path = []
+        selected_asup_files = []
 
     return (jsonify({}),
             200,

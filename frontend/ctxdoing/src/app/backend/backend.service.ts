@@ -112,6 +112,16 @@ export class BackendService {
       );
   }
 
+  /**
+   * Tell the backend to discard all previously uploaded files and start fresh
+   */
+  resetAsupFileUpload(): Observable<any> {
+    return this.http.delete(this.urls.asupFileUpload)
+      .pipe(
+        catchError(this.handleError('resetAsupFileUpload'))
+      );
+  }
+
   postAsupAutoCoresPath(path: string): Observable<any> {
     let payload: AsupFileAutoCoresLocation = {
       auto_cores_path: path

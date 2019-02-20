@@ -113,5 +113,8 @@ ve/
 # VSCode
 .vscode/
 
+# PyCharm
+.idea/
+
 # ASUP files used during local dev testing
 autosupport*

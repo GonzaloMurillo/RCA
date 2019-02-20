@@ -71,7 +71,7 @@ class ReplicationContextPlot():
       max_value_found = max(sizes)
       pos = sizes.index(max_value_found)
       tuple0 = (0,)
-      tuple1 = (0.5,) # This defines how much separation we want from the non exploded part of the graph
+      tuple1 = (0.05,) # This defines how much separation we want from the non exploded part of the graph
       explode = tuple()
 
     # We 'explode' in the graph the greatest value, bt we need to find it first and build the explode tuple
@@ -106,7 +106,7 @@ class ReplicationContextPlot():
       nums="0123456789"
       alphabet=alphabet+alphabet2+nums
       random_name=[]
-      print("The alphabet {}".format(alphabet))
+      _log.debug("The alphabet {}".format(alphabet))
 
       for i in range(0,lenght_of_name):
           random_number=random.randint(0,len(alphabet)-1)

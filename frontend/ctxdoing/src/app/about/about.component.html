@@ -1,7 +1,10 @@
 <clr-modal [(clrModalOpen)]="showAboutModal" [clrModalClosable]="false">
-  <h3 class="modal-title">About ctxdoing</h3>
+  <h3 class="modal-title">About Replication Context Analyzer</h3>
   <div class="modal-body">
+      <p>By <strong>Gonzalo Murillo</strong> (backend) & <strong>Omkar Ekbote</strong> (frontend)</p>
+    <p>
     {{versionString}}
+    </p>
   </div>
   <div class="modal-footer">
     <button class="btn btn-primary" type="button" (click)="updateVisibilityState(false)">Ok</button>

@@ -1,0 +1,5 @@
+This autosupport 
+
+1) Comes from dial home, hence the name of the host has been sanitized
+2) The context numbers are not consecutive
+3) Only context 4 is source

@@ -112,3 +112,6 @@ ve/
 
 # VSCode
 .vscode/
+
+# ASUP files used during local dev testing
+autosupport*

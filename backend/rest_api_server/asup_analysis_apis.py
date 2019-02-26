@@ -159,8 +159,8 @@ def replication_contexts_list():
                 _log.warning("The newer is {}, the older is {}".format(selected_asup_files[0]['generatedDate'],selected_asup_files[1]['generatedDate']))
                 dd_newer=DataDomain()
                 dd_older=DataDomain()
-                _log.warning("El asup del newer:{}".format(selected_asup_files[0]['filePath']))
-                _log.warning("El asup del older:{}".format(selected_asup_files[1]['filePath']))
+                _log.warning("The asup of the newer:{}".format(selected_asup_files[0]['filePath']))
+                _log.warning("The asup of the older:{}".format(selected_asup_files[1]['filePath']))
                 dd_newer.use_asup_file(selected_asup_files[0]['filePath'])
                 dd_newer.parse_asup_file_for_replication_contexts_info()
 
@@ -169,7 +169,9 @@ def replication_contexts_list():
                 dd_newer.calculate_delta_difference(dd_older)
                 _log.info("The delta difference of the object:{}".format(dd_newer.return_lrepl_client_time_stats_delta))
                 dd_newer.make_lrepl_client_time_stats_equal_to_delta_time_stats()
-                dd=dd_newer # Ojo!
+                # Ojo
+                dd=DataDomain()
+                dd.equalize(dd_newer)
             elif selected_asup_files[0]['generatedDate']<selected_asup_files[1]['generatedDate']:
 
                 _log.warning("The newer is {}, the older is {}".format(selected_asup_files[1]['generatedDate'],selected_asup_files[0]['generatedDate']))
@@ -184,7 +186,10 @@ def replication_contexts_list():
                 dd_newer.calculate_delta_difference(dd_older)
                 _log.info("The delta difference of the object:{}".format(dd_newer.return_lrepl_client_time_stats_delta))
                 dd_newer.make_lrepl_client_time_stats_equal_to_delta_time_stats()
-                dd=dd_newer # Ojo!
+                #Ojo
+                dd=DataDomain()
+                dd.equalize(dd_newer)
+
             else:
                 # A need to way to trigger an error message
                 _log.debug("Both autosupports are the same file, it makes no sense to calculate the delta difference")
@@ -224,7 +229,7 @@ def replication_contexts_list():
 def analyze_replication_contexts():
     # Call get_replication_analysis to analyze selected replication contexts
       _log.debug("Selected contexts for analysis: {}".format(selected_replication_contexts))
-
+      print("QUE CONO TENEMOS {}".format(dd.lrepl_client_time_stats))
       final_data_structure=dd.get_replication_analysis(selected_replication_contexts,app)
 
       return (jsonify(final_data_structure),

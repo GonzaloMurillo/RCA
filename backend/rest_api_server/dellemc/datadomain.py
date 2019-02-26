@@ -454,6 +454,7 @@ class DataDomain():
             _log.debug("Displaying dd_older.lrepl_client_time_stats {}".format(dd_older.lrepl_client_time_stats))
             #_log.debug("We are trying to find {} in dd_older.lrepl_client_time_stats {}".format(which_context),dd_older.lrepl_client_time_stats)
 
+
             for iterator in range (1,len(dd_older.lrepl_client_time_stats)):
 
                 for reiterator in dd_older.lrepl_client_time_stats[iterator]:
@@ -487,8 +488,13 @@ class DataDomain():
 
         if len(self.lrepl_client_time_stats[0])==len(dd_older.lrepl_client_time_stats[0]): # We are good to go as both autosupport have the same number of lprel_client_time_stats_columns (field 0 is the header)
             _log.debug("Method calculate_delta_difference: The two autosupport have the same number of columns in lrepl_client_time_stats")
+
+            # We first add the header to have a consistent way to calculate things when only one autosupport is selected or multiple autosupports are selected
+            self.lrepl_client_time_stats_delta_difference.append(self.lrepl_client_time_stats[0])
+
+
             # We just calculate delta difference for the same contexts, we do not asume that if a context is present in one autosupport and in the other, is not the same
-            for i in range (1,len(self.lrepl_client_time_stats)): # each i starting in 1, is information of a context
+            for i in range (1,len(self.lrepl_client_time_stats)): # each i starting in 1, is information of a context. 0 is the headers
                 for j in self.lrepl_client_time_stats[i]:
                     if "rctx:" in j: # We need to search that context in the dd_older.lrepl_client_time_stats
                         list_with_lrepl_client_time_stats_context_in_older_asup=find_context_in_older(j,dd_older) # The contexts has being found
@@ -505,7 +511,21 @@ class DataDomain():
 
 
     def make_lrepl_client_time_stats_equal_to_delta_time_stats(self):
+
+        del self.lrepl_client_time_stats
         self.lrepl_client_time_stats=self.lrepl_client_time_stats_delta_difference
+
+    def equalize(self,dd_object):
+
+       self.current_autosupport_name=dd_object.current_autosupport_name
+       self.current_autosupport_content=dd_object.current_autosupport_content
+       self.lrepl_client_time_stats=dd_object.lrepl_client_time_stats
+       self.lrepl_client_time_stats_delta_difference=dd_object.lrepl_client_time_stats_delta_difference
+       self.replication_contexts=dd_object.replication_contexts
+       self.replication_contexts_frontend=dd_object.replication_contexts_frontend
+       self.num_of_replication_contexts=dd_object.num_of_replication_contexts
+       self.hostname=dd_object.hostname
+       self.serial_number=dd_object.serial_number
 
     def give_me_position_in_header_of(self,column_name):
         """We use this function beause some times the order in the columns that represent lrepl client time stats, change
@@ -566,8 +586,9 @@ class DataDomain():
              # Now we need to obtain the lrepl_client_time_stats for the context that we are analyzing. That info is already in the DataDomain object because the constructor does
              for i in range(1,len(self.lrepl_client_time_stats)): # We start in 1, because dd,lrepl_client_time_stats[0], just contains the header
                  searching_for="rctx://"+str(itera_dict['ctx'])
+                 _log.debug("Method: get_replication_analisys")
                  _log.debug("We are searching the Lrepl client time stats of context:{}".format(searching_for))
-
+                 _log.debug("The lrepl_client_time_stats that we have: {}".format(self.lrepl_client_time_stats[i]))
                  if(self.lrepl_client_time_stats[i][0]==searching_for): # We are searching for on one of the specific contexts selected for analysis
                      _log.debug("We have foud the lrepl_client_time_stats of the context {}".format(searching_for))
                      # We found it, so we make the aux_lrepl_client_time_stats equal to the list that corresponds in the dd object

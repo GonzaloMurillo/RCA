@@ -162,37 +162,53 @@ def replication_contexts_list():
                 _log.warning("The asup of the newer:{}".format(selected_asup_files[0]['filePath']))
                 _log.warning("The asup of the older:{}".format(selected_asup_files[1]['filePath']))
                 dd_newer.use_asup_file(selected_asup_files[0]['filePath'])
-                dd_newer.parse_asup_file_for_replication_contexts_info()
-
                 dd_older.use_asup_file(selected_asup_files[1]['filePath'])
+
+                dd_newer.parse_asup_file_for_replication_contexts_info()
                 dd_older.parse_asup_file_for_replication_contexts_info()
+
+                # We check here if both asups are referred to the same serial
+                if(dd_newer.serial_number==dd_older.serial_number):
+                    _log.debug("Both asups are referred to the same serial number ")
+                else:
+                    _log.debug("The serial number of both asups do not match")
+                    return ("The serial number of the uploaded ASUP files do not match, we cannot calculate the delta difference of different DataDomain systems.",405,{'ContentType':'text/html'})
+
                 dd_newer.calculate_delta_difference(dd_older)
                 _log.info("The delta difference of the object:{}".format(dd_newer.return_lrepl_client_time_stats_delta))
                 dd_newer.make_lrepl_client_time_stats_equal_to_delta_time_stats()
-                # Ojo
-                dd=DataDomain()
-                dd.equalize(dd_newer)
+
+                dd=dd_newer # We just point the dd object to dd_newer where the lrepl_client_time_stats are the delta difference, as we called make_lrepl_client_time_stats_equal_to_delta_time_stats()
+
             elif selected_asup_files[0]['generatedDate']<selected_asup_files[1]['generatedDate']:
 
                 _log.warning("The newer is {}, the older is {}".format(selected_asup_files[1]['generatedDate'],selected_asup_files[0]['generatedDate']))
                 dd_newer=DataDomain()
                 dd_older=DataDomain()
                 dd_newer.use_asup_file(selected_asup_files[1]['filePath'])
-                dd_newer.parse_asup_file_for_replication_contexts_info()
-
                 dd_older.use_asup_file(selected_asup_files[0]['filePath'])
+
+                dd_newer.parse_asup_file_for_replication_contexts_info()
                 dd_older.parse_asup_file_for_replication_contexts_info()
+
+                # We check here if both asups are referred to the same serial
+                if(dd_newer.serial_number==dd_older.serial_number):
+                    _log.debug("Both asups are referred to the same serial number ")
+                else:
+                    _log.debug("The serial number of both asups do not match")
+                    return ("The serial number of the uploaded ASUP files do not match, we cannot calculate the delta difference of different DataDomain systems.",405,{'ContentType':'text/html'})
 
                 dd_newer.calculate_delta_difference(dd_older)
                 _log.info("The delta difference of the object:{}".format(dd_newer.return_lrepl_client_time_stats_delta))
                 dd_newer.make_lrepl_client_time_stats_equal_to_delta_time_stats()
                 #Ojo
-                dd=DataDomain()
-                dd.equalize(dd_newer)
+                dd=dd_newer # We just point the dd object to dd_newer where the lrepl_client_time_stats are the delta difference, as we called make_lrepl_client_time_stats_equal_to_delta_time_stats()
 
             else:
-                # A need to way to trigger an error message
+                # We need to way to trigger an error message in the frontend
                 _log.debug("Both autosupports are the same file, it makes no sense to calculate the delta difference")
+                return ("Both autosupports are the same file",405,{'ContentType':'text/html'})
+
 
 
     if request.method == 'GET':

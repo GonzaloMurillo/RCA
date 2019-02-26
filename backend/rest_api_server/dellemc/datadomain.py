@@ -441,7 +441,7 @@ class DataDomain():
                 if "GENERATED_ON=" in autosupport_read_line:
 
                     splitted_generated=autosupport_read_line.split("=") # We get just the date and not the string GENERATED_ON
-                    date_time_str_splitted=splitted_generated[1].split() # We split the part that is the date, because we do not want time zone (simplification)
+                    date_time_str_splitted=splitted_generated[1].split() # We split the part that is the date, because we do not want time zone (simplification) is really weird if they change timezone from one autosupport to the other
                     date_time_str_aux=date_time_str_splitted[0]+" "+date_time_str_splitted[1]+" "+date_time_str_splitted[2]+" "+date_time_str_splitted[5]+" "+date_time_str_splitted[3] # We build something that can be understood by the frontend
                     _log.debug("GENERATED DATE FOUND {}".format(date_time_str_aux))
                     return date_time_str_aux
@@ -449,7 +449,28 @@ class DataDomain():
 
     def calculate_delta_difference(self,dd_older):
 
+        """Computes the delta difference between the replication contexts of two DataDomains (autosupports)
+            Args:
+            dd_older: DD object created from the autosupport that is older and needs to be substracted to the newer for calculating the delta difference
+            Returns:
+            nothing, but it updates the self.lrepl_client_time_stats_delta_difference with a list of lrepl_client_time_stats_delta
+
+            """
+
+
         def find_context_in_older(which_context,dd_older):
+
+
+            """Returns the lrepl_client_time_stats found in the Data Domain object dd_older for the parameter which_context
+                Args:
+                which_context: string | An string like rctx://1 representing the context we want to found
+
+                Returns:
+                dd_older.lrepl_client_time_stats[]:list
+                It does return a list with the lrepl_client_time_stats for the specified parameter "which_context" or -1 if not found
+
+
+            """
             _log.debug("Method calculate_delta_difference:find_context_in_older")
             _log.debug("Displaying dd_older.lrepl_client_time_stats {}".format(dd_older.lrepl_client_time_stats))
             #_log.debug("We are trying to find {} in dd_older.lrepl_client_time_stats {}".format(which_context),dd_older.lrepl_client_time_stats)
@@ -467,7 +488,21 @@ class DataDomain():
 
             return -1 # If we arrive here is that the information of the context is not found
 
+
         def substract(context_newer,context_older,the_context):
+
+            """Substracts from the list context_newer (that represents the lrepl_client_time_stats of a context) the context_older (that represents the lrep_client_time_stats in an older autosupport) for the specified context "the_context"
+                Args:
+                context_newer: list | A list containint lrepl_client_time_stats of a context in the newer autosupport
+                context_older: list | A list containint lrepl_client_time_stats of a context in the older autosupport
+                the_context: list | A list with the header information of the context
+
+                Returns:
+                context_substracted:list
+                A list that is the delta difference of the specified context, meaning that each field is the difference between the information that is present in the newer autosupport - the information that was present in the older autosupport
+
+
+            """
             context_substracted=[]
             context_substracted.append(the_context)
             _log.debug("Method calculate_delta_difference:substract")
@@ -506,26 +541,30 @@ class DataDomain():
                              self.lrepl_client_time_stats_delta_difference.append(resultado)
         _log.debug("The lrepl_client_time_stats_delta_difference {}".format(self.lrepl_client_time_stats_delta_difference))
 
+
     def return_lrepl_client_time_stats_delta(self):
+
+        """Returns the lrepl_client_time_stats_delta
+            Args:
+                none
+            Returns:
+                Returns the lrepl_client_time_stats_delta of the DataDomain object that calls it
+        """
         return self.lrepl_client_time_stats_delta_difference
 
 
     def make_lrepl_client_time_stats_equal_to_delta_time_stats(self):
 
+        """Makes the lrepl_client_time_stats list of an object equal to his lrepl_client_time_stats_delta
+           This is required if we are computing a delta difference, just we can use the same methods that we use when just one autosupport is uploaded.
+            Args:
+                none
+            Returns:
+                none
+        """
         del self.lrepl_client_time_stats
         self.lrepl_client_time_stats=self.lrepl_client_time_stats_delta_difference
 
-    def equalize(self,dd_object):
-
-       self.current_autosupport_name=dd_object.current_autosupport_name
-       self.current_autosupport_content=dd_object.current_autosupport_content
-       self.lrepl_client_time_stats=dd_object.lrepl_client_time_stats
-       self.lrepl_client_time_stats_delta_difference=dd_object.lrepl_client_time_stats_delta_difference
-       self.replication_contexts=dd_object.replication_contexts
-       self.replication_contexts_frontend=dd_object.replication_contexts_frontend
-       self.num_of_replication_contexts=dd_object.num_of_replication_contexts
-       self.hostname=dd_object.hostname
-       self.serial_number=dd_object.serial_number
 
     def give_me_position_in_header_of(self,column_name):
         """We use this function beause some times the order in the columns that represent lrepl client time stats, change

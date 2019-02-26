@@ -2,8 +2,9 @@
 # coding=utf-8
 from util import version, logger
 from rest_api_server.dellemc.replicationcontextplot import ReplicationContextPlot
+from rest_api_server.dellemc.pdfhelper import PDFHelper
 # from pdfhelper import PDFHelper
-import os
+import os,datetime
 _log = logger.get_logger(__name__)
 
 
@@ -60,6 +61,7 @@ class DataDomain():
         self.current_autosupport_name=""
         self.current_autosupport_content=[]
         self.lrepl_client_time_stats=[]
+        self.lrepl_client_time_stats_delta_difference=[]
         self.replication_contexts=[]
         self.replication_contexts_frontend=[]
         self.num_of_replication_contexts=0
@@ -80,7 +82,7 @@ class DataDomain():
 
         """
         self.current_autosupport_name=filename # A DataDomain object is build from an autosupport
-        with open (self.current_autosupport_name) as autosupport_fd:
+        with open (self.current_autosupport_name,'r') as autosupport_fd:
 
             # We read the autosupport file and put it in memory, class variable member current_autosupport_content
             self.current_autosupport_content=autosupport_fd.read().splitlines() # splitlines removes the \n from each line. We have now in self.current_autosupport_content the full autosupport
@@ -358,11 +360,11 @@ class DataDomain():
         # We are searching for the information about the contexts, and that is stored in the autosupport
         # between the delimiters 'Lrepl client time stats' and 'Lrepl client stream stats'
         # those delimiters can be changing with DD OS Version, be aware!
-
-        with open (self.current_autosupport_name) as autosupport_file:
+        _log.warning("The name of the autosupport file for calculating lrepl_client_time_stats:{}".format(self.current_autosupport_name))
+        with open (self.current_autosupport_name,'r') as autosupport_file:
             for line in autosupport_file:
                 if start_delimiter in line:  # We found the start_delimiter, now we search until the start of the Lrepl client time stats
-                    
+
                     found_start = True
                     for line in autosupport_file:  # And once we find it, we read until the end of the relevant information (
                         if end_delimiter in line:  # We exit here as we have all the information we need
@@ -423,9 +425,87 @@ class DataDomain():
         if self.serial_number:
             return self.serial_number
 
-    # function give_me_position_in_header_of
-    # We use this function beause some times the order in the columns that represent lrepl client time stats, change
-    # from DD OS version to DD OS version, so we cannot rely on a fixed position. This function returns dinamically the position.
+    def get_generated_on(self):
+        """Returns the GENERATED_ON date contained in the autosupport
+            Args:
+            none: It takes the filename from the self.current_autosupport_name
+            Returns:
+            generated_on_date:string
+
+            An string with the serial obtained from the autosupport
+
+        """
+        for autosupport_read_line in self.current_autosupport_content: # We read from all the autosupport list
+            if(len(autosupport_read_line)!=0): # If the line is empty we discard it
+
+                if "GENERATED_ON=" in autosupport_read_line:
+
+                    splitted_generated=autosupport_read_line.split("=") # We get just the date and not the string GENERATED_ON
+                    date_time_str_splitted=splitted_generated[1].split() # We split the part that is the date, because we do not want time zone (simplification)
+                    date_time_str_aux=date_time_str_splitted[0]+" "+date_time_str_splitted[1]+" "+date_time_str_splitted[2]+" "+date_time_str_splitted[5]+" "+date_time_str_splitted[3] # We build something that can be understood by the frontend
+                    _log.debug("GENERATED DATE FOUND {}".format(date_time_str_aux))
+                    return date_time_str_aux
+
+
+    def calculate_delta_difference(self,dd_older):
+
+        def find_context_in_older(which_context,dd_older):
+            _log.debug("Method calculate_delta_difference:find_context_in_older")
+            _log.debug("Displaying dd_older.lrepl_client_time_stats {}".format(dd_older.lrepl_client_time_stats))
+            #_log.debug("We are trying to find {} in dd_older.lrepl_client_time_stats {}".format(which_context),dd_older.lrepl_client_time_stats)
+
+            for iterator in range (1,len(dd_older.lrepl_client_time_stats)):
+
+                for reiterator in dd_older.lrepl_client_time_stats[iterator]:
+
+                    if "rctx" in reiterator: # We do not want to search in fields containing numeric values
+                        _log.debug("Method calculate_delta_difference:find_context_in_older. Comparing {} with {}".format(which_context,reiterator))
+                        if reiterator==which_context:
+                            _log.debug("We found the context that we were searching for {}, we are going to return the lrepl_client_time_stats {}".format(which_context,dd_older.lrepl_client_time_stats[iterator]))
+                            return dd_older.lrepl_client_time_stats[iterator]
+
+            return -1 # If we arrive here is that the information of the context is not found
+
+        def substract(context_newer,context_older,the_context):
+            context_substracted=[]
+            context_substracted.append(the_context)
+            _log.debug("Method calculate_delta_difference:substract")
+            _log.debug("We are going to calculate the difference between {} and {}".format(context_newer,context_older))
+            for it in range(1,len(context_newer)):
+                context_substracted.append(int(context_newer[it])-int(context_older[it])) # We substract every field)
+
+            _log.debug("Method calculate_delta_difference:substract")
+            _log.debug("What we are returning from the substract operation:{}".format(context_substracted))
+            return(context_substracted)
+
+
+        _log.debug("Method calculate_delta_difference:We enter the method to calculate the delta difference")
+        _log.debug("Method calculate_delta_difference:Newer Lrepl client time stats")
+        print(self.lrepl_client_time_stats)
+        _log.debug("Method calculate_delta_difference:Older Lrepl client time stats")
+        print(dd_older.lrepl_client_time_stats)
+
+        if len(self.lrepl_client_time_stats[0])==len(dd_older.lrepl_client_time_stats[0]): # We are good to go as both autosupport have the same number of lprel_client_time_stats_columns (field 0 is the header)
+            _log.debug("Method calculate_delta_difference: The two autosupport have the same number of columns in lrepl_client_time_stats")
+            # We just calculate delta difference for the same contexts, we do not asume that if a context is present in one autosupport and in the other, is not the same
+            for i in range (1,len(self.lrepl_client_time_stats)): # each i starting in 1, is information of a context
+                for j in self.lrepl_client_time_stats[i]:
+                    if "rctx:" in j: # We need to search that context in the dd_older.lrepl_client_time_stats
+                        list_with_lrepl_client_time_stats_context_in_older_asup=find_context_in_older(j,dd_older) # The contexts has being found
+                        _log.debug("Method calculate_delta_difference:What has been returned by find_context_in_older {}".format(list_with_lrepl_client_time_stats_context_in_older_asup))
+                        if list_with_lrepl_client_time_stats_context_in_older_asup!=-1:
+                             resultado=[]
+                             resultado=substract(self.lrepl_client_time_stats[i],list_with_lrepl_client_time_stats_context_in_older_asup,j)
+                             _log.debug("Resultado:{}".format(resultado))
+                             self.lrepl_client_time_stats_delta_difference.append(resultado)
+        _log.debug("The lrepl_client_time_stats_delta_difference {}".format(self.lrepl_client_time_stats_delta_difference))
+
+    def return_lrepl_client_time_stats_delta(self):
+        return self.lrepl_client_time_stats_delta_difference
+
+
+    def make_lrepl_client_time_stats_equal_to_delta_time_stats(self):
+        self.lrepl_client_time_stats=self.lrepl_client_time_stats_delta_difference
 
     def give_me_position_in_header_of(self,column_name):
         """We use this function beause some times the order in the columns that represent lrepl client time stats, change
@@ -648,17 +728,25 @@ class DataDomain():
 
 
          # lets generate a PDF Report
+
+        """pdf_report=PDFHelper()
+        report_name="./reports/ReplicationReportCtx-"+"2"+".pdf"
+        pdf_report.GenerateReport(final_data_structure,2,report_name)
+
+        report_name="./reports/ReplicationReportCtx-"+"4"+".pdf"
+        pdf_report.GenerateReport(final_data_structure,4,report_name)
+        report_name="./reports/ReplicationReportCtx-"+"6"+".pdf"
+        pdf_report.GenerateReport(final_data_structure,6,report_name)
+        report_name="./reports/ReplicationReportCtx-"+"8"+".pdf"
+        pdf_report.GenerateReport(final_data_structure,8,report_name)
+        report_name="./reports/ReplicationReportCtx-"+"9"+".pdf"
+        pdf_report.GenerateReport(final_data_structure,9,report_name)
+        report_name="./reports/ReplicationReportCtx-"+"15"+".pdf"
+        pdf_report.GenerateReport(final_data_structure,15,report_name)
+        report_name="./reports/ReplicationReportCtx-"+"15"+".pdf"
+        pdf_report.GenerateReport(final_data_structure,15,report_name)
         """
-         pdf_report=PDFHelper()
-         report_name="./reports/ReplicationReportCtx-"+"1"+".pdf"
-         pdf_report.GenerateReport(final_data_structure,1,report_name)
-         report_name="./reports/ReplicationReportCtx-"+"2"+".pdf"
-         pdf_report.GenerateReport(final_data_structure,2,report_name)
-         report_name="./reports/ReplicationReportCtx-"+"3"+".pdf"
-         pdf_report.GenerateReport(final_data_structure,3,report_name)
-         report_name="./reports/ReplicationReportCtx-"+"4"+".pdf"
-         pdf_report.GenerateReport(final_data_structure,4,report_name)
-         """
+
 
         return(final_data_structure)
          # Just as a reference, this is the structure we need to end up having

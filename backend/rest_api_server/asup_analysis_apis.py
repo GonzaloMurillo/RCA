@@ -92,16 +92,26 @@ def asup_files_list():
     :return: List of dicts
     '''
     global asup_file_input_method, asup_file_save_path, selected_asup_files
-
+    _log.debug("Method asup_files_list")
     if request.method == 'GET':
         asup_files = []
         if ASUP_FILE_INPUT_METHODS['FILE_UPLOAD'] == asup_file_input_method:
             for f in asup_file_save_path:
+                asup_file_save_path_escaped=f.encode("utf-8")
+                dd_obj=DataDomain()
+                _log.debug("Autosupport to use:{}".format(asup_file_save_path_escaped))
+                dd_obj.use_asup_file(asup_file_save_path_escaped)
+                _log.debug("Obtaining date of the autosupport:")
+                generated_on_date_obtained_from_asup=dd_obj.get_generated_on()
+
                 asup_file_metadata = {
                     'filePath': os.path.basename(f),
-                    'generatedDate': str(datetime.datetime.now()) # TODO: Get generated date by reading ASUP file
+                    'generatedDate': generated_on_date_obtained_from_asup # TODO: Get generated date by reading ASUP file
                 }
                 asup_files.append(asup_file_metadata)
+                _log.warning("Content of asup_files_metadata:{}".format(asup_files))
+                generated_on_date_obtained_from_asup=""
+                del dd_obj
 
         return (jsonify(asup_files),
                 200,
@@ -123,6 +133,7 @@ def replication_contexts_list():
     global selected_replication_contexts, asup_file_input_method, dd, selected_asup_files
     # I do convert in global de dd object of class DataDomain
 
+    _log.debug("Method replication_contexts_list")
     _log.debug(asup_file_input_method)
 
     # Backend for the upload method
@@ -130,13 +141,53 @@ def replication_contexts_list():
     if(asup_file_input_method==1): #File has been uploaded
 
         _log.debug(selected_asup_files)
-        # TODO: selected_asup_files is list of dicts, the DataDomain class
-        #       to support multiple ASUP files and calculate using a range
-        asup_file_save_path_escaped=selected_asup_files[0]['filePath'].encode("utf-8") # To remove issues with path in Windows
-        _log.debug(asup_file_save_path_escaped)
-        dd=DataDomain()
-        dd.use_asup_file(asup_file_save_path_escaped) # Most of the backend is done in the class DataDomain, we create an instance
-        dd.parse_asup_file_for_replication_contexts_info()
+        number_of_asup_files=len(selected_asup_files)
+        _log.debug("Number of asup files:{}".format(len(selected_asup_files)))
+
+        if(number_of_asup_files==1):
+            # TODO: selected_asup_files is list of dicts, the DataDomain class
+            #       to support multiple ASUP files and calculate using a range
+            asup_file_save_path_escaped=selected_asup_files[0]['filePath'].encode("utf-8") # To remove issues with path in Windows
+            _log.debug(asup_file_save_path_escaped)
+            dd=DataDomain()
+            dd.use_asup_file(asup_file_save_path_escaped) # Most of the backend is done in the class DataDomain, we create an instance
+            dd.parse_asup_file_for_replication_contexts_info()
+        elif (number_of_asup_files==2):
+            # We need to compute the delta difference (newer asup lrepl client time stats - older asup lrepl client time stats)
+            if selected_asup_files[0]['generatedDate']>selected_asup_files[1]['generatedDate']:
+
+                _log.warning("The newer is {}, the older is {}".format(selected_asup_files[0]['generatedDate'],selected_asup_files[1]['generatedDate']))
+                dd_newer=DataDomain()
+                dd_older=DataDomain()
+                _log.warning("El asup del newer:{}".format(selected_asup_files[0]['filePath']))
+                _log.warning("El asup del older:{}".format(selected_asup_files[1]['filePath']))
+                dd_newer.use_asup_file(selected_asup_files[0]['filePath'])
+                dd_newer.parse_asup_file_for_replication_contexts_info()
+
+                dd_older.use_asup_file(selected_asup_files[1]['filePath'])
+                dd_older.parse_asup_file_for_replication_contexts_info()
+                dd_newer.calculate_delta_difference(dd_older)
+                _log.info("The delta difference of the object:{}".format(dd_newer.return_lrepl_client_time_stats_delta))
+                dd_newer.make_lrepl_client_time_stats_equal_to_delta_time_stats()
+                dd=dd_newer # Ojo!
+            elif selected_asup_files[0]['generatedDate']<selected_asup_files[1]['generatedDate']:
+
+                _log.warning("The newer is {}, the older is {}".format(selected_asup_files[1]['generatedDate'],selected_asup_files[0]['generatedDate']))
+                dd_newer=DataDomain()
+                dd_older=DataDomain()
+                dd_newer.use_asup_file(selected_asup_files[1]['filePath'])
+                dd_newer.parse_asup_file_for_replication_contexts_info()
+
+                dd_older.use_asup_file(selected_asup_files[0]['filePath'])
+                dd_older.parse_asup_file_for_replication_contexts_info()
+
+                dd_newer.calculate_delta_difference(dd_older)
+                _log.info("The delta difference of the object:{}".format(dd_newer.return_lrepl_client_time_stats_delta))
+                dd_newer.make_lrepl_client_time_stats_equal_to_delta_time_stats()
+                dd=dd_newer # Ojo!
+            else:
+                # A need to way to trigger an error message
+                _log.debug("Both autosupports are the same file, it makes no sense to calculate the delta difference")
 
 
     if request.method == 'GET':

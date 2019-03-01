@@ -30,7 +30,7 @@ export class ReplicationCtxSelectionComponent implements OnInit {
         this.selectedRows = this.replicationContexts;
       },
       error => {
-        this.errorDialog.showError("Failed to parse the ASUP file for a list of replication contexts");
+        this.errorDialog.showError("Failed to parse the ASUP file for a list of replication contexts: " + error);
       }
     );
   }

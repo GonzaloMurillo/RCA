@@ -15,6 +15,9 @@
     width: 100%;
 }
 
+.chart-container {
+    display: grid;
+}
 
 .repl-details-header {
     margin-top: 0;

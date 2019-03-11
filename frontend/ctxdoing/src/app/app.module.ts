@@ -4,6 +4,7 @@ import { NgModule } from '@angular/core';
 
 import { ClarityModule } from '@clr/angular';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NgxChartsModule } from '@swimlane/ngx-charts';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -34,7 +35,8 @@ import { SelectAsupComponent } from './main-wizard/asup-input/select-asup/select
     ClarityModule,
     BrowserAnimationsModule,
     HttpClientModule,
-    FormsModule
+    FormsModule,
+    NgxChartsModule
   ],
   providers: [
     { provide: LoggerService, useClass: ConsoleLoggerService }

@@ -172,10 +172,13 @@ def replication_contexts_list():
 @app.route("/api/asup/analysis/replication_contexts/time_spent", methods=['GET'])
 def analyze_replication_contexts():
     # Call get_replication_analysis to analyze selected replication contexts
-      _log.debug("Selected contexts for analysis: {}".format(selected_replication_contexts))
+    _log.debug("Selected contexts for analysis: {}".format(selected_replication_contexts))
 
-      final_data_structure=dd.get_replication_analysis(selected_replication_contexts,app)
+    final_data_structure=dd.get_replication_analysis(selected_replication_contexts,app)
 
-      return (jsonify(final_data_structure),
-              200,
-              {'ContentType': 'application/json'})
+    # TODO: Get this from the ASUP
+    final_data_structure[0]['ctxDetails']['source']['eth_interface'] = 'veth0'
+
+    return (jsonify(final_data_structure),
+            200,
+            {'ContentType': 'application/json'})

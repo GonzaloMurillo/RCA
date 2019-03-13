@@ -26,3 +26,15 @@
 .repl-details-arrow {
     vertical-align: middle;
 }
+
+h2 {
+    border-bottom: 1px solid #ddd;
+}
+
+ol {
+    margin-left: 1rem;
+}
+
+.table-left-column {
+    text-align: right !important;
+}

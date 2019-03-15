@@ -1,6 +1,4 @@
 <h1>Replication Context Time Report</h1>
-<p>This report analyses the time spent by each replication context.</p>
-<br />
 <div *ngIf="replicationContexts">
   <clr-tabs>
     <div *ngFor="let c of replicationContexts">
@@ -12,7 +10,9 @@
               <tr>
                 <td>
                   <p class="repl-details-header">
-                    <span class="label">{{c.ctxDetails.source.host}}</span> <br />
+                    <span class="label">{{c.ctxDetails.source.host}}
+                      <span class="badge badge-info">{{c.ctxDetails.source.eth_interface}}</span>
+                    </span> <br />
                     {{c.ctxDetails.source.mtree}}
                   </p>
                 </td>
@@ -20,31 +20,69 @@
                   <clr-icon shape="arrow" dir="right"></clr-icon>
                 </td>
                 <td>
-                    <p class="repl-details-header">
-                        <span class="label">{{c.ctxDetails.destination.host}}</span> <br />
-                        {{c.ctxDetails.destination.mtree}}
-                      </p>
+                  <p class="repl-details-header">
+                    <span class="label">{{c.ctxDetails.destination.host}}</span> <br />
+                    {{c.ctxDetails.destination.mtree}}
+                  </p>
                 </td>
               </tr>
             </table>
             <br />
             <div class="clr-row">
               <div class="clr-col-md-6">
-                <img src="{{c.graphImage}}" class="repl-image">
+                <!-- <img src="{{c.graphImage}}" class="repl-image"> -->
+                <ngx-charts-pie-chart *ngIf="showChart" class="chart-container" [results]="chartData[0]"
+                  [animations]="true" [legend]="false" [legendTitle]="Legend" [legendPosition]="right"
+                  [explodeSlices]="false" [maxLabelLength]="10" [labels]="true" [scheme]="chartColorScheme"
+                  [doughnut]="false" [arcWidth]="0.25" [gradient]="false" [tooltipDisabled]="false"
+                  [tooltipText]="pieTooltipText">
+                  <ng-template #tooltipTemplate let-model="model">
+                    {{model.name}}: {{model.value | number:'1.0-2'}}%
+                  </ng-template>
+                </ngx-charts-pie-chart>
               </div>
-
               <div class="clr-col-md-6">
-                 <table class="table table-vertical repl-details-table-element">
-                   <tbody>
+                <table class="table table-vertical repl-details-table-element">
+                  <tbody>
                     <tr *ngFor="let row of c.ctxUsageTime">
                       <td class="left">{{row.key}}</td>
                       <td class="left" [ngClass]="{'red-cell': (row.value > 80 && row.unit == '%')}">
-                      <!-- Show at least one digit before the decimal point and upto 2 digits after it -->
-                                              {{row.value | number:'1.0-2'}} {{row.unit}}</td>
+                        <!-- Show at least one digit before the decimal point and upto 2 digits after it -->
+                        {{row.value | number:'1.0-2'}} {{row.unit}}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+            </div>
+
+            <!-- Analysis summary and action items -->
+            <h2>Suggested Fix</h2>
+            <div class="clr-row" *ngFor="let fix of c.suggestedFix">
+              <table class="table table-vertical table-noborder">
+                <tbody>
+                  <tr>
+                    <td class="table-left-column">Problem identified on:</td>
+                    <td>{{fix.problem_on.entity_name}}
+                      <span class="badge badge-info">{{fix.problem_on.entity_type}}</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="table-left-column">Action Item:</td>
+                    <td>{{fix.action_item.one_liner}}
+                      <br/>
+                      <ol *ngFor="let step of fix.action_item.list_of_steps">
+                        <li>{{step}}</li>
+                      </ol>
+                      <br/>
+                      {{fix.action_item.footnote}}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="table-left-column">Details:</td>
+                    <td>{{fix.details}}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </clr-tab-content>

@@ -591,6 +591,44 @@ class DataDomain():
         # If we have arrived here is that we have not found that column_name
         return (-1)
 
+    def identify_replication_interface(self):
+        """
+
+        :return:
+        """
+        x=""
+        ips=[] # list with the IPs that are involved in a replication, can have the same IP twice
+        string_unique_ips=""
+        for pos,x in enumerate(self.current_autosupport_content):
+            if x.strip()=="Net Show Stats":
+
+                _log.debug("Empieza ---- {}".format(self.current_autosupport_content[pos]))
+                while pos<len(self.current_autosupport_content):
+                    if ":2051" in self.current_autosupport_content[pos]: # If it is a netstat line that contains replication information
+                        _log.debug("I found a netstat connection to port 2051 {}".format(self.current_autosupport_content[pos]))
+                        ip_puerto=self.current_autosupport_content[pos].split()
+                        _log.debug("ip puerto:{}".format(ip_puerto[4])) # Is the 4th column of the netstat the one that contains the information of the IP
+                        ip_list=ip_puerto[4].split(":")
+                        if(len(ip_list[0])>4):
+                            _log.debug("Only the IP:{}".format(ip_list[0]))
+                            ips.append(ip_list[0])
+
+                    if "----------------" in self.current_autosupport_content[pos]:
+                        break # We do this until the end, or until we find "------" as from there, it does not contain more netstat information
+
+                    pos=pos+1
+        _log.debug("List of IPs involved in replication with duplicated{}".format(ips))
+        unique_ips_set = set(ips)
+        num_ips=0
+        for unique_ip in unique_ips_set:
+            if num_ips!=0:
+                string_unique_ips=string_unique_ips+" or "
+            string_unique_ips=string_unique_ips+str(unique_ip)
+            num_ips=num_ips+1
+        _log.debug("Unique replication IPs found:{}".format(string_unique_ips))
+
+        return string_unique_ips
+
 
     def calculate_actionable(self,frontend_structe):
         """
@@ -671,8 +709,10 @@ class DataDomain():
             entity_name = frontend_structe[ctx_num]['ctxDetails']['source']['host']
             if(sum(sending_source)>70): # Bottleneck is the network
 
-                # TO DO, we need to implement a method to calculate the NIC interface being used for the replication
-                frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = 'veth' + str(ctx_num)
+                # Method to calculate the NIC interface being used for the replication self.identify_replication_interface()
+
+                replication_interface=self.identify_replication_interface()
+                frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface
 
                 frontend_structe[ctx_num]['suggestedFix'] = [
                     {
@@ -681,22 +721,26 @@ class DataDomain():
                             'entity_type': 'NETWORK'
                         },
                         'action_item': {
-                            'one_liner': 'THE BOTTLENECK IS THE NETWORK',
+                            'one_liner': 'THE BOTTLENECK IS THE NETWORK.',
                             'list_of_steps': [  # Empty list if not needed
-                                '1.- Verify that any throttle set is supposed to be there and with the correct value.',
-                                '2.- Measure with iperf the available bandwidth and check that the result coming from iperf is consistent with the customer expectation from the LAN / WAN. If network bandwidth is less than expected, customer should contact the WAN provider or the team managing the LAN for a health check of the network.',
-                                '3.- Figure out the replication interface being used for the communication and verify that it is the expected interface, and that the speed and duplex mode of that interface is correct. Check for any physical problem on the interface used for the replication like packet drops with frame errors.',
-                                '4.- Gather a network trace with tcpdump from both source and destination Data Domain Systems and analyze if the re transmission ratio is above 0.1%.\nIf it is higher than 0.1%, most likely there is a problem with the underlying communication line that needs to be investigated from the customer side.Check for any other issue on the transport layer using tcptrace.',
-                                '5.- If there is no throttle, and no network issue at the transport layer (like retransmissions, or Zero Window), then the problem is just that the network is not enough to the amount of data being replicated. The customer must increase the network bandwidth if faster replication is required or adjust the replication lag threshold.'
+                                '1.- Verify that any throttle set is supposed to be there and with the correct value.<br>',
+                                '2.- Measure with iperf the available bandwidth and check that the result coming from iperf is consistent with the customer expectation from the LAN / WAN. If network bandwidth is less than expected, customer should contact the WAN provider or the team managing the LAN for a health check of the network.<br>',
+                                '3.- Figure out the replication interface being used for the communication and verify that it is the expected interface, and that the speed and duplex mode of that interface is correct. Check for any physical problem on the interface used for the replication like packet drops with frame errors.<br>',
+                                '4.- Gather a network trace with tcpdump from both source and destination Data Domain Systems and analyze if the re transmission ratio is above 0.1%.\nIf it is higher than 0.1%, most likely there is a problem with the underlying communication line that needs to be investigated from the customer side.Check for any other issue on the transport layer using tcptrace.<br>',
+                                '5.- If there is no throttle, and no network issue at the transport layer (like retransmissions, or Zero Window), then the problem is just that the network is not enough to the amount of data being replicated. The customer must increase the network bandwidth if faster replication is required or adjust the replication lag threshold.<br>'
 
                             ],
                             'footnote': 'Please check the network connection between source and destination Data Domain Systems.' # Blank string if not needed
                         },
-                        'details': 'The bottleneck of this replication context seems to be the available network bandwidth.\nIt simply seems that the bandwidth available is not enough for the amount of data being transferred over the line, and hence most of the time the replication context is waiting for the network to become discontented and available.\nFor detailed information about how to accomplish the steps described in the "Actionable items", please check:\nhttp://technicalarticlecreatedonpurpose' }
+                        'details': 'The bottleneck of this replication context seems to be the available network bandwidth.<br>It simply seems that the bandwidth available is not enough for the amount of data being transferred over the line, and hence most of the time the replication context is waiting for the network to become discontented and available.<br>For detailed information about how to accomplish the steps suggested in the "Actionable items", please check: https://support.emc.com/kb/530882' }
                     # This is a list, so we can have multiple suggested fixes for the same context, if applicable
                 ]
             elif (sum(reading_local_fs)>70):
 
+                # Method to calculate the NIC interface being used for the replication self.identify_replication_interface()
+
+                replication_interface = self.identify_replication_interface()
+                frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface
 
                 frontend_structe[ctx_num]['suggestedFix'] = [
                     {
@@ -705,24 +749,55 @@ class DataDomain():
                             'entity_type': 'LOCAL FILE SYSTEM'
                         },
                         'action_item': {
-                            'one_liner': 'THE BOTTLENECK IS THE LOCAL READING CAPABILITY ON THE DATA DOMAIN',
+                            'one_liner': 'THE BOTTLENECK IS THE LOCAL READING CAPABILITY ON THE SOURCE DATA DOMAIN.',
                             'list_of_steps': [  # Empty list if not needed
-                                '1.- Measure the local reading of the files that are taking longer to replicate with the dd command.',
-                                '2.- If local reading of the files is OK (around 100 MB/s of performance), then analyze the type of files taking longer to replicate (Exchange Backups, SQL Backups, VMWARE Backups), check also their size, and confirm the feasibility of using AMS (Automatic Multi Stream) and verify in the ddfs logs that AMS is happening. If AMS is not happening where it should, troubleshoot that issue first.',
-                                '3.- If the files taking longer to replicate cannot leverage on AMS, then you must sub split the data of the affected mtree into several new mtrees, and create an mtree replication context for each of them. This is normally the best solution, but be careful as this will require reconfiguration of the backup software that should be performed by customer, so it can involve some extra work.',
-                                '4.- If local reading of the data is not OK (<100 MB/s), it could be that there is a limitation on the Data Domain System itself, like a DD2500 with no extra shelves, slow disks, etc, or that the locality is bad due to aging of the data, excessive cleaning or another factor.You should analyze the locality of the files taking longer to replicate with the command sfs_dump -L file.',
-                                '5.- If the locality of the files is bad, you can repair them with the command sfs_dump -R file, but that is most likely a solution that will work only for the repaired files. Repairing a file takes a great amount of time, so this is a solution to apply just if the customer is in a hurry to replicate one specific file, rather than a generic solution to the issue.'
+                                '1.- Measure the local reading of the files that are taking longer to replicate with the dd command.<br>',
+                                '2.- If local reading of the files is OK (around 100 MB/s of performance), then analyze the type of files taking longer to replicate (Exchange Backups, SQL Backups, VMWARE Backups), check also their size, and confirm the feasibility of using AMS (Automatic Multi Stream) and verify in the ddfs logs that AMS is happening.If AMS is not happening when it should, troubleshoot that issue first.<br>',
+                                '3.- If the files taking longer to replicate cannot leverage on AMS, then you must sub split the data of the affected mtree into several new mtrees, and create an mtree replication context for each of them. This is normally the best solution, but be careful as this will require reconfiguration of the backup software that should be performed by customer, so it can involve some extra work.<br>',
+                                '4.- If local reading of the data is not OK (<100 MB/s), it could be that there is a limitation on the Data Domain System itself, like a DD2500 with no extra shelves, slow disks, etc, or that the locality is bad due to aging of the data, excessive cleaning or another factor.You should analyze the locality of the files taking longer to replicate with the command sfs_dump -L file.<br>',
+                                '5.- If the locality of the files is bad, you can repair them with the command sfs_dump -R file, but that is most likely a solution that will work only for the repaired files. Repairing a file takes a great amount of time, so this is a solution to apply just if the customer is in a hurry to replicate one specific file, rather than a generic solution to the issue.<br>'
 
                             ],
                             'footnote': 'Slow Local Reading is affecting the performance of this replication context'
                         # Blank string if not needed
                         },
-                        'details': 'The bottleneck of this replication context seems to be the local reading capability. But what does it means that the "local reading" is the bottleneck? For your understanding: we need to "local read" the data at source, split it in chunks, and create fingerprints (a mathematical hash of every chunk). Once we have the fingerprint, we ask the destination Data Domain System if there is already a fingerprint matching at destination. If there is one already, it means that the data has being already transmitted and we do not send the data over the network again, we just increase the number of references that point to it. That way we save on traffic over the network.But what happens if local reading that data is slow and why it happens? There are several factors why local reading can be slow, being the most common that everything that needs to be replicated has been put by the customer inside just one mtree, and therefore only one mtree replication context is taking care of the replication. In that case we are limited by the max number of replication streams (normally 64), and we need to sub split the data and create further replication contexts.But before sub splitting the mtree, there are other points to check as described in the "Actionable Items section". For detailed information about how to accomplish those steps, please check:http://technicalarticlecreatedonpurpose'}
+                        'details': 'The bottleneck of this replication context seems to be the local reading capability.<br>What does it means that the "local reading" is the bottleneck? For your understanding: we need to "local read" the data at source, split it in chunks, and create fingerprints (a mathematical hash of every chunk). Once we have the fingerprint, we ask the destination Data Domain System if there is already a fingerprint matching at destination. If there is one already, it means that the data has being already transmitted and we do not send the data over the network again, we just increase the number of references that point to it. That way we save on traffic over the network.But what happens if local reading that data is slow and why it happens? There are several factors why local reading can be slow, being the most common that everything that needs to be replicated has been put by the customer inside just one mtree, and therefore only one mtree replication context is taking care of the replication. In that case we are limited by the max number of replication streams (normally 64), and we need to sub split the data and create further replication contexts.But before sub splitting the mtree, there are other points to check as described in the "Actionable Items section". For detailed information about how to accomplish the steps suggested in the "Actionable items", please check: https://support.emc.com/kb/530882'}
                     # This is a list, so we can have multiple suggested fixes for the same context, if applicable
                 ]
             elif (sum(sending_destination)>70):
-                print
+
+                # Method to calculate the NIC interface being used for the replication self.identify_replication_interface()
+
+                replication_interface = self.identify_replication_interface()
+                frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface
+
+                entity_name = frontend_structe[ctx_num]['ctxDetails']['destination']['host']
+                frontend_structe[ctx_num]['suggestedFix'] = [
+                    {
+                        'problem_on': {
+                            'entity_name': entity_name,
+                            'entity_type': 'DESTINATION DATA DOMAIN'
+                        },
+                        'action_item': {
+                            'one_liner': 'THE BOTTLENECK IS THE DESTINATION DATA DOMAIN OR A NETWORK DEVICE ADDING DELAY TO THE COMMUNICATION (WAN ACCELERATOR, FIREWALL, etc.)',
+                            'list_of_steps': [  # Empty list if not needed
+                                '1.- Check if the network is dropping a lot of packets or if an intermediate device is adding a lot of latency. We see that from time to time with WAN accelerators.<br>',
+                                '2.- Check if any factor at destination Data Domain can be adding delay to the response time. Particularly check if there is a lack of repl_svc.threads at destination that might be acting as a limiting factor, a faulty or slow disk, or any other variable that can be limiting the performance of the destination Data Domain system and delaying the response to the source significantly.<br>'
+
+                            ],
+                            'footnote': 'The recv_refs RPC is a synchronous call.Large time value for this may indicate a network problem resulting in a high effective round-trip time.<br>By “effective” round-trip time, we do not mean the raw network rtt that ping might report. Instead we refer to the actual amount of time for an RPC request to be received, serviced by the replica, and the reply to be received by the source ddr.'
+                            # Blank string if not needed
+                        },
+                        'details': 'The bottleneck of this replication context could be: the network connecting the destination Data Domain with the source Data Domain, an intermediate network device adding delay to the communication, or in general a lack of performance on the destination Data Domain.<br>For detailed information about how to accomplish the steps suggested in the "Actionable items", please check: https://support.emc.com/kb/530882'}
+                    # This is a list, so we can have multiple suggested fixes for the same context, if applicable
+                ]
             else:
+
+                # Method to calculate the NIC interface being used for the replication self.identify_replication_interface()
+
+                replication_interface = self.identify_replication_interface()
+                frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface
+
                 frontend_structe[ctx_num]['suggestedFix'] = [
                     {
                         'problem_on': {
@@ -732,13 +807,13 @@ class DataDomain():
                         'action_item': {
                             'one_liner': 'THIS CONTEXT IS IN BALANCE. THERE IS NO CLEAR BOTTLENECK.',
                             'list_of_steps': [  # Empty list if not needed
-                                'No actions required'
+                                'No actions required.'
 
                             ],
                             'footnote': 'This context is in balance. It should not have any replication lag.'
                         # Blank string if not needed
                         },
-                        'details': 'The whole replication operations of this replication context are in balance, meaning that the time spent by local reading operations, is in balance with the time spent on operations that depend on the network.This context should be working properly and/or there is no obvious bottleneck that is affecting the replication performance.'}
+                        'details': 'The replication operations of this replication context are in balance, meaning that the time spent by local reading operations is in balance with the time spent on operations that depend on the network availability.<br>This context should be working properly, as there is no obvious bottleneck that is affecting the replication performance.'}
                     # This is a list, so we can have multiple suggested fixes for the same context, if applicable
                 ]
             # For every context, we initialize

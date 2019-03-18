@@ -592,6 +592,166 @@ class DataDomain():
         return (-1)
 
 
+    def calculate_actionable(self,frontend_structe):
+        """
+        This function adds to the list of dictionaries that the frontend understands, the actionable items
+        displayed in the report, together with the detailed information.
+        In other words, is the function that builds the report part that mention what actions need to be taken
+        to resolve the issue and what is the issue.
+        :param frontendstructe:
+        :return: frontend_with_actionable
+
+        """
+        # We need to iterate the list frontend_structure, where each index represents a context, and search
+        # for the metrics
+        sending_source=[] # A list that will contain all the values of sending over the network (send_refs,send_segs,recv_refs,get_reft
+        sending_destination=[]
+        reading_local_fs=[] # A list that will contain all the FS local reading metrics (read_segs, read_bases)
+        entity_name=""
+        _log.debug("Calculate actionables")
+        for ctx_num,ctx_dic in enumerate(frontend_structe):
+            for j in frontend_structe[ctx_num]['ctxUsageTime']:
+
+                # Keys related with time spent over the network due to source
+
+                if j['key']== 'Time sending references':
+                    _log.debug("% time sending references {}".format(j['value']))
+                    sending_source.append(j['value'])
+
+                if j['key']=='Time sending segments':
+                    _log.debug("% time sending segments {}".format(j['value']))
+                    sending_source.append(j['value'])
+
+                if j['key'] == "Time sending small files":
+                    _log.debug("% time sending small_files".format(j['value']))
+                    sending_source.append(j['value'])
+
+                if j['key'] == "Time sending sketches":
+                    _log.debug("% Time sending sketches: {}".format(j['value']))
+                    sending_source.append(j['value'])
+
+                    # Keys related with time spent over the network due to destination
+
+                if j['key'] == 'Time receiving references':
+                    _log.debug("% time receiving references {}".format(j['value']))
+                    sending_destination.append(j['value'])
+
+                if j['key'] == 'Time waiting for references from destination':
+                    _log.debug("% time waiting for references from destination {}".format(j['value']))
+                    sending_destination.append(j['value'])
+
+                if j['key'] == "Time waiting getting references":
+                    _log.debug("% time waiting getting references {}".format(j['value']))
+                    sending_destination.append(j['value'])
+
+                if j['key'] == "Time receiving bases":
+                    _log.debug("% time waiting getting references {}".format(j['value']))
+                    sending_destination.append(j['value'])
+
+                if j['key'] == "Time getting chunk info":
+                    _log.debug("% time getting chunk info {}".format(j['value']))
+                    sending_destination.append(j['value'])
+
+                # Keys related with local file system
+
+                if j['key'] == "Time local reading segments":
+                    _log.debug("% time  local reading segments {}".format(j['value']))
+                    reading_local_fs.append(j['value'])
+
+                if j['key'] == "Time reading bases":
+                    _log.debug("% time reading bases {}".format(j['value']))
+                    reading_local_fs.append(j['value'])
+
+                if j['key'] == "Time unpacking chunks of info":
+                    _log.debug("% time unpacking chunks of info {}".format(j['value']))
+                    reading_local_fs.append(j['value'])
+
+            _log.debug("The above information is for context {}".format(ctx_num))
+            _log.debug("Spent over the network due to source:{}, due to destination {}, due to local fs: {}".format(sum(sending_source),sum(sending_destination),sum(reading_local_fs)))
+            entity_name = frontend_structe[ctx_num]['ctxDetails']['source']['host']
+            if(sum(sending_source)>70): # Bottleneck is the network
+
+                # TO DO, we need to implement a method to calculate the NIC interface being used for the replication
+                frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = 'veth' + str(ctx_num)
+
+                frontend_structe[ctx_num]['suggestedFix'] = [
+                    {
+                        'problem_on': {
+                            'entity_name': entity_name,
+                            'entity_type': 'NETWORK'
+                        },
+                        'action_item': {
+                            'one_liner': 'THE BOTTLENECK IS THE NETWORK',
+                            'list_of_steps': [  # Empty list if not needed
+                                '1.- Verify that any throttle set is supposed to be there and with the correct value.',
+                                '2.- Measure with iperf the available bandwidth and check that the result coming from iperf is consistent with the customer expectation from the LAN / WAN. If network bandwidth is less than expected, customer should contact the WAN provider or the team managing the LAN for a health check of the network.',
+                                '3.- Figure out the replication interface being used for the communication and verify that it is the expected interface, and that the speed and duplex mode of that interface is correct. Check for any physical problem on the interface used for the replication like packet drops with frame errors.',
+                                '4.- Gather a network trace with tcpdump from both source and destination Data Domain Systems and analyze if the re transmission ratio is above 0.1%.\nIf it is higher than 0.1%, most likely there is a problem with the underlying communication line that needs to be investigated from the customer side.Check for any other issue on the transport layer using tcptrace.',
+                                '5.- If there is no throttle, and no network issue at the transport layer (like retransmissions, or Zero Window), then the problem is just that the network is not enough to the amount of data being replicated. The customer must increase the network bandwidth if faster replication is required or adjust the replication lag threshold.'
+
+                            ],
+                            'footnote': 'Please check the network connection between source and destination Data Domain Systems.' # Blank string if not needed
+                        },
+                        'details': 'The bottleneck of this replication context seems to be the available network bandwidth.\nIt simply seems that the bandwidth available is not enough for the amount of data being transferred over the line, and hence most of the time the replication context is waiting for the network to become discontented and available.\nFor detailed information about how to accomplish the steps described in the "Actionable items", please check:\nhttp://technicalarticlecreatedonpurpose' }
+                    # This is a list, so we can have multiple suggested fixes for the same context, if applicable
+                ]
+            elif (sum(reading_local_fs)>70):
+
+
+                frontend_structe[ctx_num]['suggestedFix'] = [
+                    {
+                        'problem_on': {
+                            'entity_name': entity_name,
+                            'entity_type': 'LOCAL FILE SYSTEM'
+                        },
+                        'action_item': {
+                            'one_liner': 'THE BOTTLENECK IS THE LOCAL READING CAPABILITY ON THE DATA DOMAIN',
+                            'list_of_steps': [  # Empty list if not needed
+                                '1.- Measure the local reading of the files that are taking longer to replicate with the dd command.',
+                                '2.- If local reading of the files is OK (around 100 MB/s of performance), then analyze the type of files taking longer to replicate (Exchange Backups, SQL Backups, VMWARE Backups), check also their size, and confirm the feasibility of using AMS (Automatic Multi Stream) and verify in the ddfs logs that AMS is happening. If AMS is not happening where it should, troubleshoot that issue first.',
+                                '3.- If the files taking longer to replicate cannot leverage on AMS, then you must sub split the data of the affected mtree into several new mtrees, and create an mtree replication context for each of them. This is normally the best solution, but be careful as this will require reconfiguration of the backup software that should be performed by customer, so it can involve some extra work.',
+                                '4.- If local reading of the data is not OK (<100 MB/s), it could be that there is a limitation on the Data Domain System itself, like a DD2500 with no extra shelves, slow disks, etc, or that the locality is bad due to aging of the data, excessive cleaning or another factor.You should analyze the locality of the files taking longer to replicate with the command sfs_dump -L file.',
+                                '5.- If the locality of the files is bad, you can repair them with the command sfs_dump -R file, but that is most likely a solution that will work only for the repaired files. Repairing a file takes a great amount of time, so this is a solution to apply just if the customer is in a hurry to replicate one specific file, rather than a generic solution to the issue.'
+
+                            ],
+                            'footnote': 'Slow Local Reading is affecting the performance of this replication context'
+                        # Blank string if not needed
+                        },
+                        'details': 'The bottleneck of this replication context seems to be the local reading capability. But what does it means that the "local reading" is the bottleneck? For your understanding: we need to "local read" the data at source, split it in chunks, and create fingerprints (a mathematical hash of every chunk). Once we have the fingerprint, we ask the destination Data Domain System if there is already a fingerprint matching at destination. If there is one already, it means that the data has being already transmitted and we do not send the data over the network again, we just increase the number of references that point to it. That way we save on traffic over the network.But what happens if local reading that data is slow and why it happens? There are several factors why local reading can be slow, being the most common that everything that needs to be replicated has been put by the customer inside just one mtree, and therefore only one mtree replication context is taking care of the replication. In that case we are limited by the max number of replication streams (normally 64), and we need to sub split the data and create further replication contexts.But before sub splitting the mtree, there are other points to check as described in the "Actionable Items section". For detailed information about how to accomplish those steps, please check:http://technicalarticlecreatedonpurpose'}
+                    # This is a list, so we can have multiple suggested fixes for the same context, if applicable
+                ]
+            elif (sum(sending_destination)>70):
+                print
+            else:
+                frontend_structe[ctx_num]['suggestedFix'] = [
+                    {
+                        'problem_on': {
+                            'entity_name': entity_name,
+                            'entity_type': 'NONE'
+                        },
+                        'action_item': {
+                            'one_liner': 'THIS CONTEXT IS IN BALANCE. THERE IS NO CLEAR BOTTLENECK.',
+                            'list_of_steps': [  # Empty list if not needed
+                                'No actions required'
+
+                            ],
+                            'footnote': 'This context is in balance. It should not have any replication lag.'
+                        # Blank string if not needed
+                        },
+                        'details': 'The whole replication operations of this replication context are in balance, meaning that the time spent by local reading operations, is in balance with the time spent on operations that depend on the network.This context should be working properly and/or there is no obvious bottleneck that is affecting the replication performance.'}
+                    # This is a list, so we can have multiple suggested fixes for the same context, if applicable
+                ]
+            # For every context, we initialize
+            sending_source=[]
+            sending_destination=[]
+            reading_local_fs=[]
+
+
+
+
+
+        return frontend_structe
+
     def get_replication_analysis(self,selected_replication_contexts,app):
 
         """
@@ -780,14 +940,19 @@ class DataDomain():
              final_data_structure.append(dic_auxiliar) # And we add to the list resultado, which is the final data structure being processed
 
 
-             _log.debug("THE FINAL DATA STRUCTURE BUILD AFTER CONTEXT ANALYSIS IS:{}".format(final_data_structure))
-             _log.debug("WE HAVE FINISHED THE ANALYSIS OF %d REPLICATION CONTEXTS",len(final_data_structure))
+
+
+        #final_data_structure[0], es la información del primero contexto
+        #final_data_structure[1], es la información del segundo contexto
+        # logic to compute suggested fix
+        _log.debug("Length of the list final_data_structure:{}".format(len(final_data_structure)))
+        final_data_structure_2=self.calculate_actionable(final_data_structure)
+        _log.debug("THE FINAL DATA STRUCTURE BUILD AFTER CONTEXT ANALYSIS IS:{}".format(final_data_structure))
+        _log.debug("WE HAVE FINISHED THE ANALYSIS OF %d REPLICATION CONTEXTS", len(final_data_structure))
 
 
 
-
-
-         # lets generate a PDF Report
+        # lets generate a PDF Report
 
         """pdf_report=PDFHelper()
         report_name="./reports/ReplicationReportCtx-"+"2"+".pdf"
@@ -808,5 +973,5 @@ class DataDomain():
         """
 
 
-        return(final_data_structure)
+        return(final_data_structure_2)
          # Just as a reference, this is the structure we need to end up having

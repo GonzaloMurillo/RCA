@@ -237,33 +237,10 @@ def replication_contexts_list():
 @app.route("/api/asup/analysis/replication_contexts/time_spent", methods=['GET'])
 def analyze_replication_contexts():
     # Call get_replication_analysis to analyze selected replication contexts
-      _log.debug("Selected contexts for analysis: {}".format(selected_replication_contexts))
-      final_data_structure=dd.get_replication_analysis(selected_replication_contexts,app)
+    _log.debug("Selected contexts for analysis: {}".format(selected_replication_contexts))
+    final_data_structure=dd.get_replication_analysis(selected_replication_contexts,app)
 
-    # TODO: Get this from the ASUP
-    final_data_structure[0]['ctxDetails']['source']['eth_interface'] = 'veth0'
-
-    # TODO: Add logic to compute suggested fix
-    final_data_structure[0]['suggestedFix'] = [
-        {
-            'problem_on': {
-                'entity_name': 'MCQ-GCNY-DD1.__________.___',
-                'entity_type': 'Source DD'
-            },
-            'action_item': {
-                'one_liner': 'One-liner sentence about what needs to be fixed, should contain action verbs. ',
-                'list_of_steps': [ # Empty list if not needed
-                    'Go here',
-                    'Click this',
-                    'Make a sandwich',
-                    'Ponder about life choices'
-                ],
-                'footnote': 'Some more text since you like to read so much.' # Blank string if not needed
-            },
-            'details': 'Quantum physics is necessary to understand the properties of solids, atoms, nuclei, subnuclear particles and light. In order to understand these natural phenomena, quantum principles have required fundamental changes in how humans view nature. To many philosophers (Einstein included), the conflict between the fundamental probabilistic features of quantum mechanics and older assumptions about determinism provided a cognitive shock that was even more unsettling that the revised views of space and time brought by special relativity.'
-        }
-        # This is a list, so we can have multiple suggested fixes for the same context, if applicable
-    ]
+    
 
     return (jsonify(final_data_structure),
             200,

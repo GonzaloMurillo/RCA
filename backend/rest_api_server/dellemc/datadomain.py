@@ -593,8 +593,11 @@ class DataDomain():
 
     def identify_replication_interface(self):
         """
-
-        :return:
+        This function searchs in the current_autosupport_context (the Data Domain object list that contains the information loaded from the autosupport file)
+        until it finds the netstat information. "Net Show Stats" in the autosupport. In the netstat information, we search for conections to port 2051, to identify the
+        interface being used for the replication. Please note that can be more than one interface (if there are replication contexts that use different interface for the communication)
+        If there is more than one interface, we return a string of ips with all the possible interfaces
+        :return: An string with all the IPs that can be used for the communication
         """
         x=""
         ips=[] # list with the IPs that are involved in a replication, can have the same IP twice
@@ -618,7 +621,7 @@ class DataDomain():
 
                     pos=pos+1
         _log.debug("List of IPs involved in replication with duplicated{}".format(ips))
-        unique_ips_set = set(ips)
+        unique_ips_set = set(ips) # We make a ser for obtaining just unique IPs
         num_ips=0
         for unique_ip in unique_ips_set:
             if num_ips!=0:
@@ -880,6 +883,10 @@ class DataDomain():
              _log.debug("The total time spent by context {} is {} as calculated by adding together all the values".format(searching_for,sum))
              total_computed_time=sum
 
+             if total_computed_time<0: # Delta difference computes negative
+                 return(-1)
+
+
              if total_computed_time==0: # We cannot calculate anything if the time of all the metrics is 0, this context has no info
                total_computed_time=0.0001 # to ovoid division by zero, but we have to decide what to do with this repliation context (no displaying them or greyed out)
 
@@ -1015,19 +1022,13 @@ class DataDomain():
              final_data_structure.append(dic_auxiliar) # And we add to the list resultado, which is the final data structure being processed
 
 
-
-
-        #final_data_structure[0], es la información del primero contexto
-        #final_data_structure[1], es la información del segundo contexto
         # logic to compute suggested fix
         _log.debug("Length of the list final_data_structure:{}".format(len(final_data_structure)))
         final_data_structure_2=self.calculate_actionable(final_data_structure)
         _log.debug("THE FINAL DATA STRUCTURE BUILD AFTER CONTEXT ANALYSIS IS:{}".format(final_data_structure))
         _log.debug("WE HAVE FINISHED THE ANALYSIS OF %d REPLICATION CONTEXTS", len(final_data_structure))
 
-
-
-        # lets generate a PDF Report
+        # lets generate a PDF Report, if we want
 
         """pdf_report=PDFHelper()
         report_name="./reports/ReplicationReportCtx-"+"2"+".pdf"

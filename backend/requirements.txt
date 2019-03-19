@@ -3,4 +3,5 @@ Flask-Cors
 PyInstaller
 dis3
 matplotlib
-fpdf 
+fpdf
+time

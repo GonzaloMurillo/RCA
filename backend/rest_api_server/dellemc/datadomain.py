@@ -591,7 +591,8 @@ class DataDomain():
         # If we have arrived here is that we have not found that column_name
         return (-1)
 
-    def identify_replication_interface(self):
+
+    def identify_replication_interface(self,source_or_destination=3): # 3 for calculate the interface involved in the replication at source. 4 for calculating the interface involved in the replication at destination
         """
         This function searchs in the current_autosupport_context (the Data Domain object list that contains the information loaded from the autosupport file)
         until it finds the netstat information. "Net Show Stats" in the autosupport. In the netstat information, we search for conections to port 2051, to identify the
@@ -610,8 +611,8 @@ class DataDomain():
                     if ":2051" in self.current_autosupport_content[pos]: # If it is a netstat line that contains replication information
                         _log.debug("I found a netstat connection to port 2051 {}".format(self.current_autosupport_content[pos]))
                         ip_puerto=self.current_autosupport_content[pos].split()
-                        _log.debug("ip puerto:{}".format(ip_puerto[4])) # Is the 4th column of the netstat the one that contains the information of the IP
-                        ip_list=ip_puerto[4].split(":")
+                        _log.debug("ip puerto:{}".format(ip_puerto[source_or_destination])) # Is the 4th column of the netstat the one that contains the information of the IP
+                        ip_list=ip_puerto[source_or_destination].split(":")
                         if(len(ip_list[0])>4):
                             _log.debug("Only the IP:{}".format(ip_list[0]))
                             ips.append(ip_list[0])
@@ -714,7 +715,7 @@ class DataDomain():
 
                 # Method to calculate the NIC interface being used for the replication self.identify_replication_interface()
 
-                replication_interface=self.identify_replication_interface()
+                replication_interface=self.identify_replication_interface(3)
                 frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface
 
                 frontend_structe[ctx_num]['suggestedFix'] = [
@@ -742,7 +743,7 @@ class DataDomain():
 
                 # Method to calculate the NIC interface being used for the replication self.identify_replication_interface()
 
-                replication_interface = self.identify_replication_interface()
+                replication_interface = self.identify_replication_interface(3)
                 frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface
 
                 frontend_structe[ctx_num]['suggestedFix'] = [
@@ -771,7 +772,7 @@ class DataDomain():
 
                 # Method to calculate the NIC interface being used for the replication self.identify_replication_interface()
 
-                replication_interface = self.identify_replication_interface()
+                replication_interface = self.identify_replication_interface(3)
                 frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface
 
                 entity_name = frontend_structe[ctx_num]['ctxDetails']['destination']['host']
@@ -798,7 +799,7 @@ class DataDomain():
 
                 # Method to calculate the NIC interface being used for the replication self.identify_replication_interface()
 
-                replication_interface = self.identify_replication_interface()
+                replication_interface = self.identify_replication_interface(3)
                 frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface
 
                 frontend_structe[ctx_num]['suggestedFix'] = [

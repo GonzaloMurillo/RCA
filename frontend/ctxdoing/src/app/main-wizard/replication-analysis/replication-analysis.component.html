@@ -1,7 +1,7 @@
 <h1>Replication Context Time Report</h1>
 <div *ngIf="replicationContexts">
   <clr-tabs>
-    <div *ngFor="let c of replicationContexts">
+    <div *ngFor="let c of replicationContexts; let i = index">
       <clr-tab>
         <button clrTabLink>Context {{c.ctxDetails.ctx}}</button>
         <clr-tab-content *clrIfActive>
@@ -34,7 +34,7 @@
             <div class="clr-row">
               <div class="clr-col-md-6">
                 <!-- <img src="{{c.graphImage}}" class="repl-image"> -->
-                <ngx-charts-pie-chart *ngIf="showChart" class="chart-container" [results]="chartData[0]"
+                <ngx-charts-pie-chart *ngIf="showChart" class="chart-container" [results]="chartData[i]"
                   [animations]="true" [legend]="false" [legendTitle]="Legend" [legendPosition]="right"
                   [explodeSlices]="false" [maxLabelLength]="10" [labels]="true" [scheme]="chartColorScheme"
                   [doughnut]="false" [arcWidth]="0.25" [gradient]="false" [tooltipDisabled]="false"

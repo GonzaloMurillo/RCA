@@ -71,18 +71,18 @@
                   </tr>
                   <tr>
                     <td class="table-left-column">Action Item:</td>
-                    <td>{{fix.action_item.one_liner}}
-                      <br />
+                    <td><span innerHTML="{{fix.action_item.one_liner}}"></span>
+                      <br /> <br />
                       <ol>
-                        <li *ngFor="let step of fix.action_item.list_of_steps">{{step}}</li>
+                        <li *ngFor="let step of fix.action_item.list_of_steps"><span innerHTML="{{step}}"></span></li>
                       </ol>
                       <br />
-                      {{fix.action_item.footnote}}
+                      <span innerHTML="{{fix.action_item.footnote}}"></span>
                     </td>
                   </tr>
                   <tr>
                     <td class="table-left-column">Details:</td>
-                    <td>{{fix.details}}</td>
+                    <td><span innerHTML="{{fix.details}}"></span></td>
                   </tr>
                 </tbody>
               </table>

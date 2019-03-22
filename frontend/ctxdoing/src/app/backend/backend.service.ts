@@ -57,8 +57,8 @@ export class BackendService {
     asupFileElysiumSerialNumber: 'api/asup/elysium_serial_number',  // POST with AsupFileElysiumSerialNumber
     asupFilesList: 'api/asup/list', // GET
 
-    replicationContextsList: '/api/asup/analysis/replication_contexts', // GET, POST with ReplicationContext[]
-    replicationContextAnalysisResult: '/api/asup/analysis/replication_contexts/time_spent', // GET with ReplicationContextAnalysisResult[]
+    replicationContextsList: 'api/asup/analysis/replication_contexts', // GET, POST with ReplicationContext[]
+    replicationContextAnalysisResult: 'api/asup/analysis/replication_contexts/time_spent', // GET with ReplicationContextAnalysisResult[]
   }
 
   constructor(private log: LoggerService, private http: HttpClient) { }

@@ -21,7 +21,10 @@
                 </td>
                 <td>
                   <p class="repl-details-header">
-                    <span class="label">{{c.ctxDetails.destination.host}}</span> <br />
+                    <span class="label">
+                      <span class="badge badge-info" *ngIf="c.ctxDetails.destination.eth_interface">{{c.ctxDetails.destination.eth_interface}}</span>
+                      {{c.ctxDetails.destination.host}}
+                    </span> <br />
                     {{c.ctxDetails.destination.mtree}}
                   </p>
                 </td>
@@ -69,11 +72,11 @@
                   <tr>
                     <td class="table-left-column">Action Item:</td>
                     <td>{{fix.action_item.one_liner}}
-                      <br/>
+                      <br />
                       <ol>
                         <li *ngFor="let step of fix.action_item.list_of_steps">{{step}}</li>
                       </ol>
-                      <br/>
+                      <br />
                       {{fix.action_item.footnote}}
                     </td>
                   </tr>

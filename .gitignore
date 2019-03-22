@@ -107,3 +107,6 @@ ve*/
 
 # VSCode
 .vscode/
+
+# PyCharm
+.idea/

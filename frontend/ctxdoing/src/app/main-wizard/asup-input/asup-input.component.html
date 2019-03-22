@@ -9,12 +9,12 @@ It identifies bottlenecks by analyzing the time spent by each function performed
       <clr-radio-wrapper class="radio-in-label">
         <input type="radio" clrRadio name="asupFileSpecificationMethod" value="upload" [(ngModel)]="asupFileSpecificationMethod">
       </clr-radio-wrapper>
-      Upload single ASUP file
+      Upload one or more ASUP files
     </label>
     <input class="clr-col-xs-12 clr-col-md-8" clrInput type="file" id="asupFileUpload" (change)="onUploadAsupFile($event.target.files)"
-      #asupFileUpload>
-    <clr-control-helper>Select an ASUP file locally located on your computer.</clr-control-helper>
-    <clr-control-error>Browse for a file to be uploaded for analysis</clr-control-error>
+      multiple #asupFileUpload>
+    <clr-control-helper>Select ASUP file(s) located on your computer.<br/>Hold CTRL to select multiple files.</clr-control-helper>
+    <clr-control-error>Browse for file(s) to be uploaded for analysis</clr-control-error>
   </clr-input-container>
 
   <clr-input-container #asupFileAutoCoresPathContainer>

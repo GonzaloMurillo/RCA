@@ -3,21 +3,22 @@
 
 from flask import jsonify, request
 from rest_api_server import app
+import datetime
 import os
-import random
 from util import version, logger
 import json
-from dellemc.datadomain import DataDomain
-from dellemc.replicationcontextplot import ReplicationContextPlot
+from rest_api_server.dellemc.datadomain import DataDomain
+# from pdfhelper import PDFHelper
 
 
 _log = logger.get_logger(__name__)
 
 # Globals - Move to ctxdoing class/object
-asup_file_save_path = None
+asup_file_save_path = []
 asup_auto_cores_location = None
 asup_elysium_serial_number = None
 selected_replication_contexts = None
+selected_asup_files = []
 
 ASUP_FILE_INPUT_METHODS = {
     'FILE_UPLOAD': 1,
@@ -28,17 +29,24 @@ asup_file_input_method = None
 
 # This is for autosupport being provided as an upload
 
-@app.route("/api/asup/file", methods=['POST'])
+@app.route("/api/asup/file", methods=['POST', 'DELETE'])
 def asup_file_upload():
-    global asup_file_save_path, asup_file_input_method
+    global asup_file_save_path, asup_file_input_method, selected_asup_files
 
-    _log.debug("ASUP file uploaded: %s", request.files)
+    if request.method == 'POST':
+        _log.debug("ASUP file uploaded: %s", request.files)
 
-    f = request.files['asup']
-    asup_file_save_path = os.path.join(app.config['RUNTIME_WORKING_DIR'], f.filename)
-    f.save(asup_file_save_path)
-    asup_file_input_method = ASUP_FILE_INPUT_METHODS['FILE_UPLOAD']
-    _log.debug('[asup_file_input_method=FILE_UPLOAD] ASUP file saved locally as: %s', asup_file_save_path)
+        f = request.files['asup']
+        file_save_path = os.path.join(app.config['RUNTIME_WORKING_DIR'], f.filename)
+        f.save(file_save_path)
+        asup_file_save_path.append(file_save_path)
+        asup_file_input_method = ASUP_FILE_INPUT_METHODS['FILE_UPLOAD']
+        _log.info('[asup_file_input_method=FILE_UPLOAD] ASUP file saved locally as: %s', file_save_path)
+
+    elif request.method == 'DELETE':
+        _log.info("Reset uploaded ASUP files")
+        asup_file_save_path = []
+        selected_asup_files = []
 
     return (jsonify({}),
             200,
@@ -53,7 +61,7 @@ def asup_file_auto_cores_path():
     data = json.loads(request.data)
     asup_auto_cores_location = data['auto_cores_path']
     asup_file_input_method = ASUP_FILE_INPUT_METHODS['AUTO_CORES_PATH']
-    _log.debug('[asup_file_input_method=AUTO_CORES_PATH] ASUP file located at: %s', asup_auto_cores_location)
+    _log.info('[asup_file_input_method=AUTO_CORES_PATH] ASUP file located at: %s', asup_auto_cores_location)
 
     return (jsonify({}),
             200,
@@ -68,28 +76,134 @@ def asup_file_elysium_serial_number():
     data = json.loads(request.data)
     asup_elysium_serial_number = data['elysium_serial_number']
     asup_file_input_method = ASUP_FILE_INPUT_METHODS['ELYSIUM_SERIAL_NUMBER']
-    _log.debug('[asup_file_input_method=ELYSIUM_SERIAL_NUMBER] Serial Number: %s', asup_elysium_serial_number)
+    _log.info('[asup_file_input_method=ELYSIUM_SERIAL_NUMBER] Serial Number: %s', asup_elysium_serial_number)
 
     return (jsonify({}),
             200,
             {'ContentType': 'application/json'})
 
+@app.route("/api/asup/list", methods=['GET', 'POST'])
+def asup_files_list():
+    '''
+    For the selected input method, open each ASUP file and return a list of
+    all ASUP files with their metadata.
+    This API is used by the GUI to select which ASUP file(s) are to be analyzed
+
+    :return: List of dicts
+    '''
+    global asup_file_input_method, asup_file_save_path, selected_asup_files
+    _log.debug("Method asup_files_list")
+    if request.method == 'GET':
+        asup_files = []
+        if ASUP_FILE_INPUT_METHODS['FILE_UPLOAD'] == asup_file_input_method:
+            for f in asup_file_save_path:
+                asup_file_save_path_escaped=f.encode("utf-8")
+                dd_obj=DataDomain()
+                _log.debug("Autosupport to use:{}".format(asup_file_save_path_escaped))
+                dd_obj.use_asup_file(asup_file_save_path_escaped)
+                _log.debug("Obtaining date of the autosupport:")
+                generated_on_date_obtained_from_asup=dd_obj.get_generated_on()
+
+                asup_file_metadata = {
+                    'filePath': os.path.basename(f),
+                    'generatedDate': generated_on_date_obtained_from_asup
+                }
+                asup_files.append(asup_file_metadata)
+                _log.debug("Content of asup_files_metadata:{}".format(asup_files))
+                generated_on_date_obtained_from_asup=""
+                del dd_obj
+
+        return (jsonify(asup_files),
+                200,
+                {'ContentType': 'application/json'})
+
+    elif request.method == 'POST':
+        selected_asup_files = json.loads(request.data)
+        _log.info("Selected ASUP files for analysis: %s", selected_asup_files)
+
+        return (jsonify({}),
+                200,
+                {'ContentType': 'application/json'})
+
+
 # Displaying just the source (and valid) replication context from the autosupport
 
 @app.route("/api/asup/analysis/replication_contexts", methods=['GET', 'POST'])
 def replication_contexts_list():
-    global selected_replication_contexts, asup_file_input_method,dd # I do convert in global de dd object of class DataDomain
+    global selected_replication_contexts, asup_file_input_method, dd, selected_asup_files
+    # I do convert in global de dd object of class DataDomain
 
+    _log.debug("Method replication_contexts_list")
     _log.debug(asup_file_input_method)
 
     # Backend for the upload method
 
     if(asup_file_input_method==1): #File has been uploaded
 
-        _log.debug(asup_file_save_path)
-        asup_file_save_path_escaped=asup_file_save_path.encode("utf-8") # To remove issues with path in Windows
-        _log.debug(asup_file_save_path_escaped)
-        dd=DataDomain(asup_file_save_path_escaped) # Most of the backend is done in the class DataDomain, we create an instance
+        _log.debug(selected_asup_files)
+        number_of_asup_files=len(selected_asup_files)
+        _log.debug("Number of asup files:{}".format(len(selected_asup_files)))
+
+        if(number_of_asup_files==1):
+            # TODO: selected_asup_files is list of dicts, the DataDomain class
+            #       to support multiple ASUP files and calculate using a range
+            asup_file_save_path_escaped=selected_asup_files[0]['filePath'].encode("utf-8") # To remove issues with path in Windows
+            _log.debug(asup_file_save_path_escaped)
+            dd=DataDomain()
+            dd.use_asup_file(asup_file_save_path_escaped) # Most of the backend is done in the class DataDomain, we create an instance
+            dd.parse_asup_file_for_replication_contexts_info()
+        elif (number_of_asup_files==2):
+            # Ok, the user has selected two autosupport files, we need to calculate delta difference
+            data_domain = []
+            data_domain.append(DataDomain())
+            data_domain.append(DataDomain())
+
+            if selected_asup_files[0]['generatedDate'] < selected_asup_files[1]['generatedDate']:
+                _log.debug("First if")
+                data_domain[0].use_asup_file(selected_asup_files[1]['filePath'])
+                data_domain[1].use_asup_file(selected_asup_files[0]['filePath'])
+                _log.warning("The asup of the newer:{}".format(selected_asup_files[1]['filePath']))
+                _log.warning("The asup of the older:{}".format(selected_asup_files[0]['filePath']))
+
+            elif selected_asup_files[0]['generatedDate'] > selected_asup_files[1]['generatedDate']:
+                _log.debug("Second if")
+                data_domain[0].use_asup_file(selected_asup_files[0]['filePath'])
+                data_domain[1].use_asup_file(selected_asup_files[1]['filePath'])
+                _log.warning("The asup of the newer:{}".format(selected_asup_files[0]['filePath']))
+                _log.warning("The asup of the older:{}".format(selected_asup_files[1]['filePath']))
+
+            elif selected_asup_files[0]['generatedDate'] == selected_asup_files[1]['generatedDate'] :
+
+                # The GENERATED_DATE is the same, so this seems to be the same file, or in any case makes no sense to calculate delta differences
+                _log.error("Both autosupports are the same file, it makes no sense to calculate the delta difference")
+                return ("Cannot calculate delta difference because both autosupports are the same file, try again by selecting 2 different ASUP files for the same Data Domain",405,{'ContentType':'text/html'})
+
+            # We know populate the context information for both the data_domain objects
+            data_domain[0].parse_asup_file_for_replication_contexts_info()
+            data_domain[1].parse_asup_file_for_replication_contexts_info()
+
+            # Now data_domain[0] is the newer asup and data_domain[1] is the older one
+            # We check here if both asups are referred to the same serial
+            if(data_domain[0].serial_number==data_domain[1].serial_number):
+                _log.debug("Both asups are referred to the same serial number ")
+
+                data_domain[0].calculate_delta_difference(data_domain[1])
+                _log.info("The delta difference of the object:{}".format(data_domain[0].return_lrepl_client_time_stats_delta))
+                data_domain[0].make_lrepl_client_time_stats_equal_to_delta_time_stats()
+
+                dd=data_domain[0] # We just point the dd object to newer dd, where the lrepl_client_time_stats are the delta difference, as we called make_lrepl_client_time_stats_equal_to_delta_time_stats()
+
+            else:
+                _log.debug("The serial number of both asups do not match")
+                return ("The serial number of the uploaded ASUP files do not match, we cannot calculate the delta difference of different DataDomain systems.<br/>\
+                    <ul>\
+                        <li>%s: %s</li>\
+                        <li>%s: %s</li>\
+                        </ul>" % (selected_asup_files[0]['filePath'], data_domain[0].serial_number, selected_asup_files[1]['filePath'], data_domain[1].serial_number),405,{'ContentType':'text/html'})
+
+
+
+
     if request.method == 'GET':
 
         _log.debug("START of the method to display the contexts of the autosuport that has being uploaded")
@@ -99,8 +213,6 @@ def replication_contexts_list():
             _log.debug("Searching for just source replication contexts")
             if(dd.is_source_context(item['ctx'])):
                 _log.debug("The context{}, is a source replication context".format(item))
-                # Here we should also add checkings if it is also a valid context like for example if there is lrepl client time stats for that context in the autosupport, because if there a lot of context no all of them are calculated
-                # for now, we simply add to the list:get_repl_ctx_list
                 _log.debug("Adding the context number:{} to the list of source and valid replication contexts".format(item))
                 repl_ctx_list.append(item)
 
@@ -124,258 +236,35 @@ def replication_contexts_list():
 # This is where the real analysis of the context happens
 @app.route("/api/asup/analysis/replication_contexts/time_spent", methods=['GET'])
 def analyze_replication_contexts():
-    # Call ctxdoing to analyze selected replication contexts
-      # 'data' is a list similar to that returned by ctxdoing.get_repl_ctx_list()
-      # result = ctxdoing.analyze_repl_ctx(data)
-      _log.debug("START of the method to analyze the contexts provided")
-      _log.debug("The selected replication context that need analysis are:{}".format(selected_replication_contexts))
-      resultado=[] # This is the final structure that we are going to build
+    # Call get_replication_analysis to analyze selected replication contexts
+      _log.debug("Selected contexts for analysis: {}".format(selected_replication_contexts))
+      final_data_structure=dd.get_replication_analysis(selected_replication_contexts,app)
 
-      # We iterate between the selected replication contexts
+    # TODO: Get this from the ASUP
+    final_data_structure[0]['ctxDetails']['source']['eth_interface'] = 'veth0'
 
-      for itera_dict in selected_replication_contexts: # selected_replication_contexts is the info that comes from the selection context screen
-          _log.debug("itera dict:{}".format(itera_dict))
+    # TODO: Add logic to compute suggested fix
+    final_data_structure[0]['suggestedFix'] = [
+        {
+            'problem_on': {
+                'entity_name': 'MCQ-GCNY-DD1.__________.___',
+                'entity_type': 'Source DD'
+            },
+            'action_item': {
+                'one_liner': 'One-liner sentence about what needs to be fixed, should contain action verbs. ',
+                'list_of_steps': [ # Empty list if not needed
+                    'Go here',
+                    'Click this',
+                    'Make a sandwich',
+                    'Ponder about life choices'
+                ],
+                'footnote': 'Some more text since you like to read so much.' # Blank string if not needed
+            },
+            'details': 'Quantum physics is necessary to understand the properties of solids, atoms, nuclei, subnuclear particles and light. In order to understand these natural phenomena, quantum principles have required fundamental changes in how humans view nature. To many philosophers (Einstein included), the conflict between the fundamental probabilistic features of quantum mechanics and older assumptions about determinism provided a cognitive shock that was even more unsettling that the revised views of space and time brought by special relativity.'
+        }
+        # This is a list, so we can have multiple suggested fixes for the same context, if applicable
+    ]
 
-          dic_auxiliar={}
-          dic_auxiliar['ctxDetails']=itera_dict # We add to the dic auxiliar the key {'ctxDetails'} that will contain the details of the context
-          list_ctx_usage_time=[] # This list will contain the context lrepl client time stats values
-
-          aux_lrepl_client_time_stats=[] # This list is going to content the lrepl client time stats of that particular context
-          # Now we need to obtain the lrepl_client_time_stats for the context that we are analyzing. That info is already in the DataDomain object because the constructor does
-          for i in range(1,len(dd.lrepl_client_time_stats)): # We start in 1, because dd,lrepl_client_time_stats[0], just contains the header
-              searching_for="rctx://"+str(itera_dict['ctx'])
-              _log.debug("We are searching the Lrepl client time stats of context:{}".format(searching_for))
-
-              if(dd.lrepl_client_time_stats[i][0]==searching_for): # We are searching for on one of the specific contexts selected for analysis
-                  _log.debug("We have foud the lrepl_client_time_stats of the context {}".format(searching_for))
-                  # We found it, so we make the aux_lrepl_client_time_stats equal to the list that corresponds in the dd object
-                  aux_lrepl_client_time_stats=dd.lrepl_client_time_stats[i]
-                  # And we exit
-                  break
-          _log.debug("The list aux_lrepl_client_time_stats for the contex:{} now contains{}".format(searching_for,aux_lrepl_client_time_stats))
-
-          # We do the maths as we are using relative values instead of relying on the calculation coming in the autosupport
-          sum=0
-          for x in range(2,len(aux_lrepl_client_time_stats)): # we start in 2, because 0, is the ctx number, and 1 is the calculated by the dd lrepl client time stats, we do not trust it as it fails from time to time, so we add the times together ourselves
-
-              sum=sum+int(aux_lrepl_client_time_stats[x])
-
-          _log.debug("The total time spent by context {} is {} as calculated by adding together all the values".format(searching_for,sum))
-          total_computed_time=sum
-
-          if total_computed_time==0: # We cannot calculate anything if the time of all the metrics is 0, this context has no info
-            total_computed_time=0.0001 # to ovoid division by zero, but we have to decide what to do with this repliation context (no displaying them or greyed out)
-
-          aux_lrepl_client_time_stats[1]=total_computed_time # We assign the computed time to the aux_lrepl_client_time_stats, if it is 0 or if it is not
-
-          # We are using dic_ctx_usage_time as the auxiliar context where we are putting all the information about each key, before adding it to list_ctx_usage_time
-          dic_ctx_usage_time={}
-          dic_ctx_usage_time={'key':'Total time spent by the replication context','value':total_computed_time,'unit': 'seconds'}
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time sending references. Problems with float operations and number of digits after the '.' I need to figure a better way. decimal module?
-          # For making this inter DD OS version, we have coded the give_me_position_in_header_of Function
-          # The problem is that between DD OS ASUPS, sometime the headers of the lrepl client time stats do not store the value for a key in the same positional column
-          # therefore we need to obtain first in which position it is the right information, if we do not want to plot things that are not accurate.
-          # if the function returns -1 is that they key has not being found
-          # It is a good idea probably to assign a key to 0 if it has not being found
-
-          position=dd.give_me_position_in_header_of('send_refs')
-          tsr_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={'key': 'Time sending references', 'value':tsr_percentage,'unit': '%' }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time sending segments
-          position=dd.give_me_position_in_header_of('send_segs')
-          tss_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={'key': 'Time sending segments', 'value':tss_percentage, 'unit': '%' }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time receiving references
-          position=dd.give_me_position_in_header_of('recv_refs')
-          trr_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time receiving references", "value": trr_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time waiting for references from destination
-          position=dd.give_me_position_in_header_of('recv_refs_sleep')
-          twrd_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time waiting for references from destination", "value": twrd_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time waiting getting references
-          position=dd.give_me_position_in_header_of('get_refs')
-          twgr_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time waiting getting references", "value": twgr_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time local reading segments
-          position=dd.give_me_position_in_header_of('read_segs')
-          tlls_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time local reading segments", "value": tlls_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time sending small files
-          position=dd.give_me_position_in_header_of('send_small_file')
-          tsmf_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time sending small files", "value": tsmf_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time sending sketches
-          position=dd.give_me_position_in_header_of('send_sketches')
-          tse_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time sending sketches", "value": tse_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time receiving bases
-          position=dd.give_me_position_in_header_of('recv_bases')
-          trb_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time receiving bases", "value": tse_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time reading bases
-          position=dd.give_me_position_in_header_of('read_bases')
-          treadb_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time reading bases", "value": treadb_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time getting chunk info
-          position=dd.give_me_position_in_header_of('get_chunk_info')
-          tgci_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time getting chunk info", "value": tgci_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          # Time unpacking chunks of info
-          position=dd.give_me_position_in_header_of('unpack_chunks')
-          tupi_percentage=float(aux_lrepl_client_time_stats[position])*100/total_computed_time
-          dic_ctx_usage_time={ "key": "Time unpacking chunks of info", "value": tupi_percentage, "unit": "%" }
-          list_ctx_usage_time.append(dic_ctx_usage_time)
-          dic_ctx_usage_time={}
-
-          _log.debug("What list_ctx_usage_time contains:{}".format(list_ctx_usage_time))
-           # TO DO We will have to create the graph here from the info contained in list_ctx_usage_time
-           # We build the graph here
-
-
-          #save_name=os.path.join(app.config['RUNTIME_WORKING_DIR']+"\\graphs", "ctxgraph"+str(random_number)+".png") # This writes in the backend, if I write in the frontend it keeps refreshing
-
-          #save_name="C:\\DDTOOLS-master\\ctxdoing-master-branch\\ctxdoing\\backend\\static\\"+"ctxgraph"+graph.random_name(5)+".png"
-          graph=ReplicationContextPlot()
-          #save_name="C:\\DDTOOLS-master\\ctxdoing-master-branch\\ctxdoing\\frontend\\ctxdoing\\src\\assets\\"+"ctxplot"+"-"+graph.random_name(5)+".png"
-
-          save_name_path=app.config['STATIC_DIR_PATH']
-          save_name="ctxplot"+"-"+graph.random_name(5)+".png" # We create a random name 5 characters long
-
-          returned_graph=graph.plot_context(list_ctx_usage_time,os.path.join(save_name_path,save_name))
-
-          if(returned_graph==os.path.join(save_name_path,save_name)): # We suceeded to create the graph
-            _log.debug("We suceeded to create the graph named:{}".format(save_name))
-          else:
-            _log.debug("Seems that not all the columns required to plot the graph are there. Name of the graph:{}".format(save_name))
-
-
-          _log.debug("Name of the graph:{}".format(save_name))
-
-          dic_auxiliar_2={'graphImage': save_name}
-
-          dic_auxiliar.update(dic_auxiliar_2)
-          """
-          # This is how it was originally pointing to a resource under frontend src
-          #dic_auxiliar_2={'graphImage': 'assets/ctxgraph93808.png'}
-          #dic_auxiliar.update(dic_auxiliar_2)
-          """
-
-          # END OF THE GRAPH, we keep adding what is remaining
-          dic_auxiliar.update(dic_ctx_usage_time) # Method update of the dictionary dict.update(dict2) what it does it do add dict2´s key-values pair in to dict (like removing one nexted dictionary)
-          dic_auxiliar['ctxUsageTime']=list_ctx_usage_time # And now we add the key 'ctxUsageTime'
-          resultado.append(dic_auxiliar) # And we add to the list resultado, which is the final data structure being processed
-
-
-          _log.debug("THE FINAL DATA STRUCTURE BUILD AFTER CONTEXT ANALYSIS IS:{}".format(resultado))
-          _log.debug("WE HAVE FINISHED THE ANALYSIS OF %d REPLICATION CONTEXTS",len(resultado))
-          # Just as a reference, this is the structure we need to end up having
-
-
-          """result = [
-                {
-                  'ctxDetails': {
-                     'ctx': 1,
-                     'source': {
-                         'host': 'dd390gcsr01.nam.nsroot.net',
-                         'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu1_rep'#he quitado una coma
-                         },
-                     'destination': {
-                         'host': 'dd390gcsr02.nam.nsroot.net',
-                         'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu1_rep'
-                        }
-                    },
-                  # Save PNG generated by matplotlib in app.config['STATIC_DIR_PATH'] andgive it a UUID
-                  # Then set this path to /static/img-uuid-here.png
-                  'graphImage': 'assets/replicationgraph.png',
-                  'ctxUsageTime': [
-                    { "key": "Total time spent by the replication context", "value": "11362471", "unit": "seconds" },
-                    { "key": "Time sending references", "value": "0.2", "unit": "%" },
-                    { "key": "Time sending segments", "value": "1.5", "unit": "%" },
-                    { "key": "Time receiving references", "value": "0.4", "unit": "%" },
-                    { "key": "Time waiting for references from destination", "value": "1.4", "unit": "%" },
-                    { "key": "Time waiting getting references", "value": "2.9", "unit": "%" },
-                    { "key": "Time local reading segments", "value": "93.6", "unit": "%" },
-                    { "key": "Time sending small files", "value": "0.0", "unit": "%" },
-                    { "key": "Time sending sketches", "value": "0.0", "unit": "%" },
-                    { "key": "Time receiving bases", "value": "0.0", "unit": "%" },
-                    { "key": "Time reading bases", "value": "0.0", "unit": "%" },
-                    { "key": "Time getting chunk info", "value": "0.0", "unit": "%" },
-                    { "key": "Time unpacking chunks of info", "value": "0.0", "unit": "%" }
-                  ]
-                },
-                'ctxDetails': {
-                   'ctx': 2,
-                   'source': {
-                       'host': 'dd390gcsr01.nam.nsroot.net',
-                       'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu1_rep'#he quitado una coma
-                       },
-                   'destination': {
-                       'host': 'dd390gcsr02.nam.nsroot.net',
-                       'mtree': '/data/col1/dd390gcsr01_crebm4900_lsu1_rep'
-                      }
-                  },
-                # Save PNG generated by matplotlib in app.config['STATIC_DIR_PATH'] andgive it a UUID
-                # Then set this path to /static/img-uuid-here.png
-                'graphImage': 'assets/replicationgraph.png',
-                'ctxUsageTime': [
-                  { "key": "Total time spent by the replication context", "value": "11362471", "unit": "seconds" },
-                  { "key": "Time sending references", "value": "0.2", "unit": "%" },
-                  { "key": "Time sending segments", "value": "1.5", "unit": "%" },
-                  { "key": "Time receiving references", "value": "0.4", "unit": "%" },
-                  { "key": "Time waiting for references from destination", "value": "1.4", "unit": "%" },
-                  { "key": "Time waiting getting references", "value": "2.9", "unit": "%" },
-                  { "key": "Time local reading segments", "value": "93.6", "unit": "%" },
-                  { "key": "Time sending small files", "value": "0.0", "unit": "%" },
-                  { "key": "Time sending sketches", "value": "0.0", "unit": "%" },
-                  { "key": "Time receiving bases", "value": "0.0", "unit": "%" },
-                  { "key": "Time reading bases", "value": "0.0", "unit": "%" },
-                  { "key": "Time getting chunk info", "value": "0.0", "unit": "%" },
-                  { "key": "Time unpacking chunks of info", "value": "0.0", "unit": "%" }
-                ]
-              }
-
-
-            ]
-      """
-
-
-      return (jsonify(resultado),
-              200,
-              {'ContentType': 'application/json'})
+    return (jsonify(final_data_structure),
+            200,
+            {'ContentType': 'application/json'})

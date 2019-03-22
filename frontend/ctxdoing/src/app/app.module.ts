@@ -4,6 +4,7 @@ import { NgModule } from '@angular/core';
 
 import { ClarityModule } from '@clr/angular';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NgxChartsModule } from '@swimlane/ngx-charts';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -16,6 +17,7 @@ import { ReplicationCtxSelectionComponent } from './main-wizard/replication-ctx-
 import { ReplicationAnalysisComponent } from './main-wizard/replication-analysis/replication-analysis.component';
 import { FormsModule } from '@angular/forms';
 import { ErrorDialogComponent } from './error-dialog/error-dialog.component';
+import { SelectAsupComponent } from './main-wizard/asup-input/select-asup/select-asup.component';
 
 @NgModule({
   declarations: [
@@ -24,7 +26,8 @@ import { ErrorDialogComponent } from './error-dialog/error-dialog.component';
     AsupInputComponent,
     ReplicationCtxSelectionComponent,
     ReplicationAnalysisComponent,
-    ErrorDialogComponent
+    ErrorDialogComponent,
+    SelectAsupComponent
   ],
   imports: [
     BrowserModule,
@@ -32,7 +35,8 @@ import { ErrorDialogComponent } from './error-dialog/error-dialog.component';
     ClarityModule,
     BrowserAnimationsModule,
     HttpClientModule,
-    FormsModule
+    FormsModule,
+    NgxChartsModule
   ],
   providers: [
     { provide: LoggerService, useClass: ConsoleLoggerService }

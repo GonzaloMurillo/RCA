@@ -63,7 +63,6 @@ def asup_file_auto_cores_path():
     asup_auto_cores_location = data['auto_cores_path']
     asup_file_input_method = ASUP_FILE_INPUT_METHODS['AUTO_CORES_PATH']
     _log.info('[asup_file_input_method=AUTO_CORES_PATH] ASUP file located at: %s', asup_auto_cores_location)
-    _log.debug("Location of the autosupport files:{}".format(asup_auto_cores_location))
     return (jsonify({}),
             200,
             {'ContentType': 'application/json'})

@@ -4,4 +4,3 @@ PyInstaller
 dis3
 matplotlib
 fpdf
-time

@@ -592,7 +592,7 @@ class DataDomain():
         return (-1)
 
 
-    def identify_replication_interface(self,source_or_destination=3): # 3 for calculate the interface involved in the replication at source. 4 for calculating the interface involved in the replication at destination
+    def identify_replication_interface(self,dd_location): # 3 for calculate the interface involved in the replication at source. 4 for calculating the interface involved in the replication at destination
         """
         This function searchs in the current_autosupport_context (the Data Domain object list that contains the information loaded from the autosupport file)
         until it finds the netstat information. "Net Show Stats" in the autosupport. In the netstat information, we search for conections to port 2051, to identify the
@@ -603,6 +603,15 @@ class DataDomain():
         x=""
         ips=[] # list with the IPs that are involved in a replication, can have the same IP twice
         string_unique_ips=""
+        if dd_location=="source":
+            _log.debug("I am searching the REPLICATION NIC for source")
+            position=3
+        elif dd_location=="destination":
+            _log.debug("I am searching the REPLICATION NIC for destination")
+            position=4
+        else:
+            return "???"
+
         for pos,x in enumerate(self.current_autosupport_content):
             if x.strip()=="Net Show Stats":
 
@@ -611,8 +620,8 @@ class DataDomain():
                     if ":2051" in self.current_autosupport_content[pos]: # If it is a netstat line that contains replication information
                         _log.debug("I found a netstat connection to port 2051 {}".format(self.current_autosupport_content[pos]))
                         ip_puerto=self.current_autosupport_content[pos].split()
-                        _log.debug("ip puerto:{}".format(ip_puerto[source_or_destination])) # Is the 4th column of the netstat the one that contains the information of the IP
-                        ip_list=ip_puerto[source_or_destination].split(":")
+                        _log.debug("ip puerto:{}".format(ip_puerto[position])) # Is the 4th column of the netstat the one that contains the information of the IP
+                        ip_list=ip_puerto[position].split(":")
                         if(len(ip_list[0])>4):
                             _log.debug("Only the IP:{}".format(ip_list[0]))
                             ips.append(ip_list[0])
@@ -657,66 +666,69 @@ class DataDomain():
                 # Keys related with time spent over the network due to source
 
                 if j['key']== 'Time sending references':
-                    _log.debug("% time sending references {}".format(j['value']))
+
                     sending_source.append(j['value'])
 
                 if j['key']=='Time sending segments':
-                    _log.debug("% time sending segments {}".format(j['value']))
+
                     sending_source.append(j['value'])
 
                 if j['key'] == "Time sending small files":
-                    _log.debug("% time sending small_files".format(j['value']))
+
                     sending_source.append(j['value'])
 
                 if j['key'] == "Time sending sketches":
-                    _log.debug("% Time sending sketches: {}".format(j['value']))
+
                     sending_source.append(j['value'])
 
                     # Keys related with time spent over the network due to destination
 
                 if j['key'] == 'Time receiving references':
-                    _log.debug("% time receiving references {}".format(j['value']))
+
                     sending_destination.append(j['value'])
 
                 if j['key'] == 'Time waiting for references from destination':
-                    _log.debug("% time waiting for references from destination {}".format(j['value']))
+
                     sending_destination.append(j['value'])
 
                 if j['key'] == "Time waiting getting references":
-                    _log.debug("% time waiting getting references {}".format(j['value']))
+
                     sending_destination.append(j['value'])
 
                 if j['key'] == "Time receiving bases":
-                    _log.debug("% time waiting getting references {}".format(j['value']))
+
                     sending_destination.append(j['value'])
 
                 if j['key'] == "Time getting chunk info":
-                    _log.debug("% time getting chunk info {}".format(j['value']))
+
                     sending_destination.append(j['value'])
 
                 # Keys related with local file system
 
                 if j['key'] == "Time local reading segments":
-                    _log.debug("% time  local reading segments {}".format(j['value']))
+
                     reading_local_fs.append(j['value'])
 
                 if j['key'] == "Time reading bases":
-                    _log.debug("% time reading bases {}".format(j['value']))
+
                     reading_local_fs.append(j['value'])
 
                 if j['key'] == "Time unpacking chunks of info":
-                    _log.debug("% time unpacking chunks of info {}".format(j['value']))
+
                     reading_local_fs.append(j['value'])
 
-            _log.debug("The above information is for context {}".format(ctx_num))
+                _log.debug("ctxUsageTime for selected ctx in position %d is %s", ctx_num, j)
             _log.debug("Spent over the network due to source:{}, due to destination {}, due to local fs: {}".format(sum(sending_source),sum(sending_destination),sum(reading_local_fs)))
             entity_name = frontend_structe[ctx_num]['ctxDetails']['source']['host']
             if(sum(sending_source)>70): # Bottleneck is the network
 
                 # Method to calculate the NIC interface being used for the replication self.identify_replication_interface()
 
-                replication_interface=self.identify_replication_interface(3)
-                frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface
+                replication_interface_source=self.identify_replication_interface("source")
+                frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface_source
+
+                replication_interface_destination = self.identify_replication_interface("destination")
+                frontend_structe[ctx_num]['ctxDetails']['destination']['eth_interface']=replication_interface_destination
 
                 frontend_structe[ctx_num]['suggestedFix'] = [
                     {
@@ -725,7 +737,7 @@ class DataDomain():
                             'entity_type': 'NETWORK'
                         },
                         'action_item': {
-                            'one_liner': 'THE BOTTLENECK IS THE NETWORK.',
+                            'one_liner': 'The bottleneck is the network.',
                             'list_of_steps': [  # Empty list if not needed
                                 '1.- Verify that any throttle set is supposed to be there and with the correct value.<br>',
                                 '2.- Measure with iperf the available bandwidth and check that the result coming from iperf is consistent with the customer expectation from the LAN / WAN. If network bandwidth is less than expected, customer should contact the WAN provider or the team managing the LAN for a health check of the network.<br>',
@@ -743,8 +755,12 @@ class DataDomain():
 
                 # Method to calculate the NIC interface being used for the replication self.identify_replication_interface()
 
-                replication_interface = self.identify_replication_interface(3)
-                frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface
+
+                replication_interface_source=self.identify_replication_interface("source")
+                frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface_source
+
+                replication_interface_destination = self.identify_replication_interface("destination")
+                frontend_structe[ctx_num]['ctxDetails']['destination']['eth_interface']=replication_interface_destination
 
                 frontend_structe[ctx_num]['suggestedFix'] = [
                     {
@@ -753,7 +769,7 @@ class DataDomain():
                             'entity_type': 'LOCAL FILE SYSTEM'
                         },
                         'action_item': {
-                            'one_liner': 'THE BOTTLENECK IS THE LOCAL READING CAPABILITY ON THE SOURCE DATA DOMAIN.',
+                            'one_liner': 'The bottleneck is the local reading capabiilty on the source Data Domain.',
                             'list_of_steps': [  # Empty list if not needed
                                 '1.- Measure the local reading of the files that are taking longer to replicate with the dd command.<br>',
                                 '2.- If local reading of the files is OK (around 100 MB/s of performance), then analyze the type of files taking longer to replicate (Exchange Backups, SQL Backups, VMWARE Backups), check also their size, and confirm the feasibility of using AMS (Automatic Multi Stream) and verify in the ddfs logs that AMS is happening.If AMS is not happening when it should, troubleshoot that issue first.<br>',
@@ -772,8 +788,12 @@ class DataDomain():
 
                 # Method to calculate the NIC interface being used for the replication self.identify_replication_interface()
 
-                replication_interface = self.identify_replication_interface(3)
-                frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface
+
+                replication_interface_source=self.identify_replication_interface("source")
+                frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface_source
+
+                replication_interface_destination = self.identify_replication_interface("destination")
+                frontend_structe[ctx_num]['ctxDetails']['destination']['eth_interface']=replication_interface_destination
 
                 entity_name = frontend_structe[ctx_num]['ctxDetails']['destination']['host']
                 frontend_structe[ctx_num]['suggestedFix'] = [
@@ -783,7 +803,7 @@ class DataDomain():
                             'entity_type': 'DESTINATION DATA DOMAIN'
                         },
                         'action_item': {
-                            'one_liner': 'THE BOTTLENECK IS THE DESTINATION DATA DOMAIN OR A NETWORK DEVICE ADDING DELAY TO THE COMMUNICATION (WAN ACCELERATOR, FIREWALL, etc.)',
+                            'one_liner': 'The bottleneck is the destination Data Domain or a network device adding delay to the communication (WAN accelerator, firewall, etc.)',
                             'list_of_steps': [  # Empty list if not needed
                                 '1.- Check if the network is dropping a lot of packets or if an intermediate device is adding a lot of latency. We see that from time to time with WAN accelerators.<br>',
                                 '2.- Check if any factor at destination Data Domain can be adding delay to the response time. Particularly check if there is a lack of repl_svc.threads at destination that might be acting as a limiting factor, a faulty or slow disk, or any other variable that can be limiting the performance of the destination Data Domain system and delaying the response to the source significantly.<br>'
@@ -799,8 +819,12 @@ class DataDomain():
 
                 # Method to calculate the NIC interface being used for the replication self.identify_replication_interface()
 
-                replication_interface = self.identify_replication_interface(3)
-                frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface
+
+                replication_interface_source=self.identify_replication_interface("source")
+                frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface_source
+
+                replication_interface_destination = self.identify_replication_interface("destination")
+                frontend_structe[ctx_num]['ctxDetails']['destination']['eth_interface']=replication_interface_destination
 
                 frontend_structe[ctx_num]['suggestedFix'] = [
                     {
@@ -809,7 +833,7 @@ class DataDomain():
                             'entity_type': 'NONE'
                         },
                         'action_item': {
-                            'one_liner': 'THIS CONTEXT IS IN BALANCE. THERE IS NO CLEAR BOTTLENECK.',
+                            'one_liner': 'This context is in balance. There is no clear bottleneck.',
                             'list_of_steps': [  # Empty list if not needed
                                 'No actions required.'
 
@@ -821,6 +845,8 @@ class DataDomain():
                     # This is a list, so we can have multiple suggested fixes for the same context, if applicable
                 ]
             # For every context, we initialize
+
+
             sending_source=[]
             sending_destination=[]
             reading_local_fs=[]
@@ -993,6 +1019,9 @@ class DataDomain():
               # TO DO We will have to create the graph here from the info contained in list_ctx_usage_time
               # We build the graph here
 
+             """ This was the old method to generate a graph from the backend
+                 Omkar came with something better done at the front-end, so I disable it 
+                 but leave here just in case it is needed sometime
              graph=ReplicationContextPlot()
 
              save_name_path=app.config['STATIC_DIR_PATH']
@@ -1011,13 +1040,14 @@ class DataDomain():
              dic_auxiliar_2={'graphImage': save_name}
 
              dic_auxiliar.update(dic_auxiliar_2)
-             """
+             
              # This is how it was originally pointing to a resource under frontend src
              #dic_auxiliar_2={'graphImage': 'assets/ctxgraph93808.png'}
              #dic_auxiliar.update(dic_auxiliar_2)
-             """
+             
 
              # END OF THE GRAPH, we keep adding what is remaining
+             """
              dic_auxiliar.update(dic_ctx_usage_time) # Method update of the dictionary dict.update(dict2) what it does it do add dict2´s key-values pair in to dict (like removing one nexted dictionary)
              dic_auxiliar['ctxUsageTime']=list_ctx_usage_time # And now we add the key 'ctxUsageTime'
              final_data_structure.append(dic_auxiliar) # And we add to the list resultado, which is the final data structure being processed

@@ -1,7 +1,7 @@
 <h1>Replication Context Time Report</h1>
 <div *ngIf="replicationContexts">
   <clr-tabs>
-    <div *ngFor="let c of replicationContexts">
+    <div *ngFor="let c of replicationContexts; let i = index">
       <clr-tab>
         <button clrTabLink>Context {{c.ctxDetails.ctx}}</button>
         <clr-tab-content *clrIfActive>
@@ -21,7 +21,10 @@
                 </td>
                 <td>
                   <p class="repl-details-header">
-                    <span class="label">{{c.ctxDetails.destination.host}}</span> <br />
+                    <span class="label">
+                      <span class="badge badge-info" *ngIf="c.ctxDetails.destination.eth_interface">{{c.ctxDetails.destination.eth_interface}}</span>
+                      {{c.ctxDetails.destination.host}}
+                    </span> <br />
                     {{c.ctxDetails.destination.mtree}}
                   </p>
                 </td>
@@ -31,7 +34,7 @@
             <div class="clr-row">
               <div class="clr-col-md-6">
                 <!-- <img src="{{c.graphImage}}" class="repl-image"> -->
-                <ngx-charts-pie-chart *ngIf="showChart" class="chart-container" [results]="chartData[0]"
+                <ngx-charts-pie-chart *ngIf="showChart" class="chart-container" [results]="chartData[i]"
                   [animations]="true" [legend]="false" [legendTitle]="Legend" [legendPosition]="right"
                   [explodeSlices]="false" [maxLabelLength]="10" [labels]="true" [scheme]="chartColorScheme"
                   [doughnut]="false" [arcWidth]="0.25" [gradient]="false" [tooltipDisabled]="false"
@@ -68,18 +71,18 @@
                   </tr>
                   <tr>
                     <td class="table-left-column">Action Item:</td>
-                    <td>{{fix.action_item.one_liner}}
-                      <br/>
-                      <ol *ngFor="let step of fix.action_item.list_of_steps">
-                        <li>{{step}}</li>
+                    <td><span innerHTML="{{fix.action_item.one_liner}}"></span>
+                      <br /> <br />
+                      <ol>
+                        <li *ngFor="let step of fix.action_item.list_of_steps"><span innerHTML="{{step}}"></span></li>
                       </ol>
-                      <br/>
-                      {{fix.action_item.footnote}}
+                      <br />
+                      <span innerHTML="{{fix.action_item.footnote}}"></span>
                     </td>
                   </tr>
                   <tr>
                     <td class="table-left-column">Details:</td>
-                    <td>{{fix.details}}</td>
+                    <td><span innerHTML="{{fix.details}}"></span></td>
                   </tr>
                 </tbody>
               </table>

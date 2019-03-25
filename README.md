@@ -1,24 +1,24 @@
-# Replication Lag Analyzer
+# Replication Contexts Analyzer
 
-Replication Lag Analyzer (from now on "RLA"), is a Web Based Tool that uses the information coming from the autosupport files to identify bottlenecks and to fingerpoint the reasons why one or multiple replication contexts might be lagging or are under performing. 
+Replication Contexts Analyzer (from now on "RCA"), is a Web Based Tool that uses the information coming from the autosupport files to identify bottlenecks and to fingerpoint the reasons why one or multiple replication contexts might be lagging or are under performing. 
 
-RLA uses the metrics found in the "Lrepl Client Time Stats" and plots a graph for every replication context selected, displaying also a table with the times in percentage spent by every replication operation within that replication context.
+RCA uses the metrics found in the "Lrepl Client Time Stats" and plots a graph for every replication context selected, displaying also a table with the times in percentage spent by every replication operation within that replication context.
 
 The tool also provides actionable steps to mitigate or resolve replication lags, or to improve the performance of any replication context under analysis.
 
 A PDF report can be obtained with all the information presented on the screen, and it can be used to argue with the customer (with proper data), why a replication is lagging and what can be done to improve the replication lag or replication "under performing" situation.
 
-RLA is based on a modern Web Based GUI that simplifies the usage and is suitable for a wider audience.
+RCA is based on a modern Web Based GUI that simplifies the usage and is suitable for a wider audience.
 
-How to access RLA?
+How to access RCA?
 
-RLA can be accessed from any web browser (although Google Chrome is recommended), just by simply navigating to the following URL:
+RCA can be accessed from any web browser (although Google Chrome is recommended), just by simply navigating to the following URL:
 
-http://ddsup01/RLA/
+http://ddsup01/RCA/
 
-How to use RLA?
+How to use RCA?
 
-RLA can support the following modes of operation: 
+RCA can support the following modes of operation: 
 
 1) Direct Upload from our computer of one or multiple autosupport files representing a source Data Domain.
 2) Path specification mode: where we provide the path to a valid location inside the evidence server that should contain valid autosupport files coming from the source Data Domain.

@@ -1,0 +1,21 @@
+<div class="login-wrapper">
+  <form class="login">
+    <section class="title">
+      <h3 class="welcome">Welcome to</h3>
+      Replication Context Analyzer
+      <h5 class="hint">Use your Dell e-mail address to login</h5>
+    </section>
+    <div class="login-group">
+      <clr-input-container>
+        <input type="text" name="email" clrInput email required placeholder="you@dell.com"
+          [(ngModel)]="loginCredentials.email" #email="ngModel" />
+      </clr-input-container>
+      <!-- <clr-password-container>
+              <input type="password" name="password" clrPassword placeholder="Password" [(ngModel)]="loginCredentials.password"/>
+          </clr-password-container> -->
+      <button type="submit" class="btn btn-primary" (click)="onLogin()"
+        [disabled]="email.invalid">LOGIN</button>
+    </div>
+  </form>
+</div>
+<app-error-dialog #errorDialog></app-error-dialog>

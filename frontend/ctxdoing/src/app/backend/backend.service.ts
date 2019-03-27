@@ -10,6 +10,10 @@ export interface BackendVersion {
   version: string;
 };
 
+export interface LoginCredentials {
+  email: string;
+}
+
 export interface AsupFileAutoCoresLocation {
   auto_cores_path: string;
 };
@@ -51,6 +55,9 @@ export class BackendService {
 
   urls = {
     version: 'api/version',           // GET
+
+    login: 'api/login', // POST
+    logout: 'api/logout', //GET
     
     asupFileUpload: 'api/asup/file',  // POST with FormData
     asupFileAutoCoresLocation: 'api/asup/auto_cores_path',  // POST with AsupFileAutoCoresLocation
@@ -60,6 +67,9 @@ export class BackendService {
     replicationContextsList: 'api/asup/analysis/replication_contexts', // GET, POST with ReplicationContext[]
     replicationContextAnalysisResult: 'api/asup/analysis/replication_contexts/time_spent', // GET with ReplicationContextAnalysisResult[]
   }
+
+  is_logged_in: boolean = false;
+  logged_in_user: LoginCredentials;
 
   constructor(private log: LoggerService, private http: HttpClient) { }
 
@@ -100,6 +110,27 @@ export class BackendService {
     return this.http.get<BackendVersion>(this.urls.version)
       .pipe(
         catchError(this.handleError('getVersion'))
+      );
+  }
+
+  doLogin(creds: LoginCredentials): Observable<any> {
+    let result = this.http.post(this.urls.login, creds)
+      .pipe(
+        catchError(this.handleError('doLogin'))
+      );
+
+    this.is_logged_in = true;
+    this.logged_in_user = creds;
+    return result;
+  }
+
+  doLogout(): Observable<any> {
+    this.is_logged_in = false;
+    this.logged_in_user = null;
+    
+    return this.http.get<any>(this.urls.logout)
+      .pipe(
+        catchError(this.handleError('doLogout'))
       );
   }
 

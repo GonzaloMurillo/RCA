@@ -3,6 +3,7 @@
 import flask_login
 from flask import jsonify, request, session
 from flask_login import login_user, logout_user
+import json
 
 from auth.user_auth import DellUser
 from rest_api_server import app, login_manager
@@ -25,7 +26,10 @@ def load_user(user_id):
 @app.route("/api/login", methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        user = DellUser()
+        creds = json.loads(request.data)
+
+        # No username/password for now, just login using email
+        user = DellUser(creds['email'])
         DellUser.user_list['UNIQUE_ID'] = user
         login_user(user)
         session['key'] = 'value'
@@ -37,10 +41,9 @@ def login():
                 {'ContentType': 'application/json'})
 
     if request.method == 'GET':
-        result = {'user': flask_login.current_user }
         val = session.get('key', 'not set')
 
-        _log.info("Key: %s, Currently logged in user: %s", val, result)
+        _log.info("Key: %s, Currently logged in user: %s", val, flask_login.current_user)
 
         return (jsonify({}),
                 200,

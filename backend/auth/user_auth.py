@@ -31,6 +31,11 @@ class DellUser(UserMixin):
         # Flask-Login expects a return value of None for invalid user_ids, not an exception
         return None
 
+    def __init__(self, email):
+        _log.info("Creating an instance of DellUser for %s", email)
+        self.email = email
+        self.user_list[email] = self
+
     def is_authenticated(self):
         return True
 
@@ -46,4 +51,7 @@ class DellUser(UserMixin):
 
         :return: Unicode string
         '''
-        return u'UNIQUE_ID'
+        return self.email
+
+    def __str__(self):
+        return "DellUser <%s>" % (self.email)

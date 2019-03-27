@@ -125,6 +125,9 @@ export class BackendService {
   }
 
   doLogout(): Observable<any> {
+    this.is_logged_in = false;
+    this.logged_in_user = null;
+    
     return this.http.get<any>(this.urls.logout)
       .pipe(
         catchError(this.handleError('doLogout'))

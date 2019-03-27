@@ -29,10 +29,15 @@ def login():
         creds = json.loads(request.data)
 
         # No username/password for now, just login using email
+        if '@dell.com' not in creds['email']:
+            return ("Please use your <code>@dell.com</code> email address to login.",
+                    400,
+                    {'ContentType': 'text/html'})
+
+        # Create a new DellUser object and pass it to Flask-login to start a session
         user = DellUser(creds['email'])
-        DellUser.user_list['UNIQUE_ID'] = user
         login_user(user)
-        session['key'] = 'value'
+        session['ip'] = request.remote_addr
 
         _log.info("Logged in as user: %s", user)
 
@@ -40,10 +45,11 @@ def login():
                 200,
                 {'ContentType': 'application/json'})
 
+    # For debugging only, not used by GUI
     if request.method == 'GET':
-        val = session.get('key', 'not set')
+        val = session.get('ip', 'Not yet logged in')
 
-        _log.info("Key: %s, Currently logged in user: %s", val, flask_login.current_user)
+        _log.info("IP: %s, Currently logged in user: %s", val, flask_login.current_user)
 
         return (jsonify({}),
                 200,

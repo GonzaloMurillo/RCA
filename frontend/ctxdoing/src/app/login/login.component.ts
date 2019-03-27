@@ -30,7 +30,7 @@ export class LoginComponent implements OnInit {
         this.router.navigate(['asup-input']);
       },
       error => {
-        this.errorDialog.showError("Failed to login as '" + this.loginCredentials.email + "'");
+        this.errorDialog.showError("Failed to login as '" + this.loginCredentials.email + "'<br><br>" + error);
       }
     );
   }

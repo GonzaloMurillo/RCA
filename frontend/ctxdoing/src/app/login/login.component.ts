@@ -20,10 +20,14 @@ export class LoginComponent implements OnInit {
   constructor(private log: LoggerService, private backend: BackendService, private router: Router) { }
 
   ngOnInit() {
+    if (this.backend.is_logged_in) {
+      this.log.info("Already logged in as '%s', moving on...", this.backend.logged_in_user.email)
+      this.router.navigate(['asup-input']);
+    }
   }
 
   onLogin() {
-    this.log.info("Login as: %s", this.loginCredentials);
+    this.log.info("Login as: ", this.loginCredentials);
 
     this.backend.doLogin(this.loginCredentials).subscribe(
       data => {

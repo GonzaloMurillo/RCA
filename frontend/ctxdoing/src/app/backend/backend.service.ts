@@ -68,6 +68,9 @@ export class BackendService {
     replicationContextAnalysisResult: 'api/asup/analysis/replication_contexts/time_spent', // GET with ReplicationContextAnalysisResult[]
   }
 
+  is_logged_in: boolean = false;
+  logged_in_user: LoginCredentials;
+
   constructor(private log: LoggerService, private http: HttpClient) { }
 
   /**
@@ -111,10 +114,14 @@ export class BackendService {
   }
 
   doLogin(creds: LoginCredentials): Observable<any> {
-    return this.http.post(this.urls.login, creds)
+    let result = this.http.post(this.urls.login, creds)
       .pipe(
         catchError(this.handleError('doLogin'))
       );
+
+    this.is_logged_in = true;
+    this.logged_in_user = creds;
+    return result;
   }
 
   doLogout(): Observable<any> {

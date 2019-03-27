@@ -11,9 +11,7 @@ export class ErrorDialogComponent implements OnInit {
   showErrorModal: boolean = false;
   errorMessage: string = "";
 
-  constructor(private log: LoggerService) { 
-    log.info("Error dialog: ", this);
-  }
+  constructor(private log: LoggerService) { }
 
   updateVisibilityState(newState: boolean) {
     this.showErrorModal = newState;

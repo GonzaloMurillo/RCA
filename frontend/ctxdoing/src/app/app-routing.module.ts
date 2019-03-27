@@ -7,7 +7,7 @@ import { SelectAsupComponent } from './main-wizard/asup-input/select-asup/select
 import { LoginComponent } from './login/login.component';
 
 const routes: Routes = [
-  {path: '', redirectTo: 'asup-input', pathMatch: 'full'},
+  {path: '', redirectTo: 'login', pathMatch: 'full'},
   {path: 'login', component: LoginComponent},
   {path: 'asup-input', component: AsupInputComponent},
   {path: 'asup-select', component: SelectAsupComponent},

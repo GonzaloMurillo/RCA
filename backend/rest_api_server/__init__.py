@@ -4,11 +4,13 @@
 # All imports are relative to the top 'backend' directory
 import os, sys
 import traceback
+
 sys.path.append(os.path.abspath(os.path.join(os.curdir, '..')))
 # 3rd party imports
 try:
     from flask import Flask
     from flask_cors import CORS, cross_origin
+    from flask_login import LoginManager
 except Exception as e:
     traceback.print_exc()
     sys.stderr.write("Failed to import some Python modules, use requirements.txt "
@@ -35,7 +37,13 @@ app.config['STATIC_DIR_PATH'] = os.path.join(runtime_path, "static")
 _log.debug("RUNTIME_WORKING_DIR: %s", app.config['RUNTIME_WORKING_DIR'])
 _log.debug("STATIC_DIR_PATH: %s", app.config['STATIC_DIR_PATH'])
 
+# Setup session management
+app.secret_key = os.urandom(24)
+login_manager = LoginManager()
+login_manager.init_app(app)
+
 # Import other Flask sub-modules containing URL handlers
 import rest_api_server.default_routes
+import rest_api_server.session_mgmt_apis
 import rest_api_server.common_apis
 import rest_api_server.asup_analysis_apis

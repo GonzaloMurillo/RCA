@@ -4,6 +4,7 @@
 from flask import jsonify, request
 from rest_api_server import app
 import datetime
+import time
 import os
 from util import version, logger
 import json
@@ -62,7 +63,6 @@ def asup_file_auto_cores_path():
     asup_auto_cores_location = data['auto_cores_path']
     asup_file_input_method = ASUP_FILE_INPUT_METHODS['AUTO_CORES_PATH']
     _log.info('[asup_file_input_method=AUTO_CORES_PATH] ASUP file located at: %s', asup_auto_cores_location)
-
     return (jsonify({}),
             200,
             {'ContentType': 'application/json'})
@@ -145,28 +145,36 @@ def replication_contexts_list():
         _log.debug("Number of asup files:{}".format(len(selected_asup_files)))
 
         if(number_of_asup_files==1):
-            # TODO: selected_asup_files is list of dicts, the DataDomain class
-            #       to support multiple ASUP files and calculate using a range
+
             asup_file_save_path_escaped=selected_asup_files[0]['filePath'].encode("utf-8") # To remove issues with path in Windows
             _log.debug(asup_file_save_path_escaped)
             dd=DataDomain()
             dd.use_asup_file(asup_file_save_path_escaped) # Most of the backend is done in the class DataDomain, we create an instance
             dd.parse_asup_file_for_replication_contexts_info()
+
         elif (number_of_asup_files==2):
             # Ok, the user has selected two autosupport files, we need to calculate delta difference
             data_domain = []
             data_domain.append(DataDomain())
             data_domain.append(DataDomain())
 
-            if selected_asup_files[0]['generatedDate'] < selected_asup_files[1]['generatedDate']:
+            # We need to use strptime to convert the string to a proper date
+            # The format of the date that comes from the asup is like Wed Mar 6 2019 06:21:44
+            # Check:https://www.journaldev.com/23365/python-string-to-datetime-strptime
+            if time.strptime(selected_asup_files[0]['generatedDate'],"%a %b %d %Y %H:%M:%S") < time.strptime(selected_asup_files[1]['generatedDate'],"%a %b %d %Y %H:%M:%S"):
                 _log.debug("First if")
+                _log.debug("{} is < than {}".format(selected_asup_files[0]['generatedDate'],selected_asup_files[1]['generatedDate']))
+                #raw_input("Press a key")
                 data_domain[0].use_asup_file(selected_asup_files[1]['filePath'])
                 data_domain[1].use_asup_file(selected_asup_files[0]['filePath'])
                 _log.warning("The asup of the newer:{}".format(selected_asup_files[1]['filePath']))
                 _log.warning("The asup of the older:{}".format(selected_asup_files[0]['filePath']))
 
-            elif selected_asup_files[0]['generatedDate'] > selected_asup_files[1]['generatedDate']:
+            elif time.strptime(selected_asup_files[0]['generatedDate'],"%a %b %d %Y %H:%M:%S") > time.strptime(selected_asup_files[1]['generatedDate'],"%a %b %d %Y %H:%M:%S"):
+
                 _log.debug("Second if")
+                _log.debug("{} is > than {}".format(selected_asup_files[0]['generatedDate'],selected_asup_files[1]['generatedDate']))
+                #raw_input("Press a key")
                 data_domain[0].use_asup_file(selected_asup_files[0]['filePath'])
                 data_domain[1].use_asup_file(selected_asup_files[1]['filePath'])
                 _log.warning("The asup of the newer:{}".format(selected_asup_files[0]['filePath']))
@@ -176,7 +184,7 @@ def replication_contexts_list():
 
                 # The GENERATED_DATE is the same, so this seems to be the same file, or in any case makes no sense to calculate delta differences
                 _log.error("Both autosupports are the same file, it makes no sense to calculate the delta difference")
-                return ("Cannot calculate delta difference because both autosupports are the same file, try again by selecting 2 different ASUP files for the same Data Domain",405,{'ContentType':'text/html'})
+                return ("<br>Cannot calculate delta difference because both autosupports are the same file, <strong>try again by selecting 2 different ASUP files for the same Data Domain.</strong>",405,{'ContentType':'text/html'})
 
             # We know populate the context information for both the data_domain objects
             data_domain[0].parse_asup_file_for_replication_contexts_info()
@@ -238,33 +246,17 @@ def replication_contexts_list():
 def analyze_replication_contexts():
     # Call get_replication_analysis to analyze selected replication contexts
     _log.debug("Selected contexts for analysis: {}".format(selected_replication_contexts))
-    final_data_structure=dd.get_replication_analysis(selected_replication_contexts,app)
 
-    # TODO: Get this from the ASUP
-    final_data_structure[0]['ctxDetails']['source']['eth_interface'] = 'veth0'
+    temporal_data_structure=dd.get_replication_analysis(selected_replication_contexts,app)
 
-    # TODO: Add logic to compute suggested fix
-    final_data_structure[0]['suggestedFix'] = [
-        {
-            'problem_on': {
-                'entity_name': 'MCQ-GCNY-DD1.__________.___',
-                'entity_type': 'Source DD'
-            },
-            'action_item': {
-                'one_liner': 'One-liner sentence about what needs to be fixed, should contain action verbs. ',
-                'list_of_steps': [ # Empty list if not needed
-                    'Go here',
-                    'Click this',
-                    'Make a sandwich',
-                    'Ponder about life choices'
-                ],
-                'footnote': 'Some more text since you like to read so much.' # Blank string if not needed
-            },
-            'details': 'Quantum physics is necessary to understand the properties of solids, atoms, nuclei, subnuclear particles and light. In order to understand these natural phenomena, quantum principles have required fundamental changes in how humans view nature. To many philosophers (Einstein included), the conflict between the fundamental probabilistic features of quantum mechanics and older assumptions about determinism provided a cognitive shock that was even more unsettling that the revised views of space and time brought by special relativity.'
-        }
-        # This is a list, so we can have multiple suggested fixes for the same context, if applicable
-    ]
+    if(temporal_data_structure==-1): # This happens if the difference for one context between 2 dates is negative
 
-    return (jsonify(final_data_structure),
-            200,
-            {'ContentType': 'application/json'})
+        return ("<strong>NEGATIVE DELTA DIFFERENCE</strong><br><br>This could happen when the difference in the metrics for one context between two dates is negative.<br><br>If the DDFS has been restarted between the two selected dates, this error is normal because 'Lrepl Client Time Stats' is a cumulative metric that start from 0 whenever the FS is restarted.<br><br>In that case use the 'Single Autosupport Upload' to obtain metrics.<br>Otherwise report a problem sending an e-mail: gonzalo.murillotello@dell.com.", 405, {'ContentType': 'text/html'})
+
+    else:
+
+        final_data_structure=temporal_data_structure
+
+        return (jsonify(final_data_structure),
+                200,
+                {'ContentType': 'application/json'})

@@ -18,6 +18,7 @@ import { ReplicationAnalysisComponent } from './main-wizard/replication-analysis
 import { FormsModule } from '@angular/forms';
 import { ErrorDialogComponent } from './error-dialog/error-dialog.component';
 import { SelectAsupComponent } from './main-wizard/asup-input/select-asup/select-asup.component';
+import { LoginComponent } from './login/login.component';
 
 @NgModule({
   declarations: [
@@ -27,7 +28,8 @@ import { SelectAsupComponent } from './main-wizard/asup-input/select-asup/select
     ReplicationCtxSelectionComponent,
     ReplicationAnalysisComponent,
     ErrorDialogComponent,
-    SelectAsupComponent
+    SelectAsupComponent,
+    LoginComponent
   ],
   imports: [
     BrowserModule,

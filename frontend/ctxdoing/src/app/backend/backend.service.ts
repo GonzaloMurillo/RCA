@@ -59,10 +59,11 @@ export class BackendService {
     login: 'api/login', // POST
     logout: 'api/logout', //GET
     
-    asupFileUpload: 'api/asup/file',  // POST with FormData
+    asupFileUpload: 'api/asup/upload',  // POST with FormData
     asupFileAutoCoresLocation: 'api/asup/auto_cores_path',  // POST with AsupFileAutoCoresLocation
-    asupFileElysiumSerialNumber: 'api/asup/elysium_serial_number',  // POST with AsupFileElysiumSerialNumber
-    asupFilesList: 'api/asup/list', // GET
+    asupFileElysiumSerialNumber: 'api/asup/elysium',  // POST with AsupFileElysiumSerialNumber
+    asupFilesList: 'api/asup/metadata_list', // GET
+    asupFilesSelectedList: 'api/asup/select', // POST
 
     replicationContextsList: 'api/asup/analysis/replication_contexts', // GET, POST with ReplicationContext[]
     replicationContextAnalysisResult: 'api/asup/analysis/replication_contexts/time_spent', // GET with ReplicationContextAnalysisResult[]
@@ -107,7 +108,7 @@ export class BackendService {
   }
 
   getBackendVersion(): Observable<BackendVersion> {
-    return this.http.get<BackendVersion>(this.urls.version)
+    return this.http.get<BackendVersion>(this.urls.version, {withCredentials: true})
       .pipe(
         catchError(this.handleError('getVersion'))
       );
@@ -128,7 +129,7 @@ export class BackendService {
     this.is_logged_in = false;
     this.logged_in_user = null;
     
-    return this.http.get<any>(this.urls.logout)
+    return this.http.get<any>(this.urls.logout, {withCredentials: true})
       .pipe(
         catchError(this.handleError('doLogout'))
       );
@@ -137,7 +138,7 @@ export class BackendService {
   postAsupFile(file: File): Observable<any> {
     let formData: FormData = new FormData();
     formData.append('asup', file, file.name);
-    return this.http.post(this.urls.asupFileUpload, formData)
+    return this.http.post(this.urls.asupFileUpload, formData, {withCredentials: true})
       .pipe(
         catchError(this.handleError('postAsupFile'))
       );
@@ -147,7 +148,7 @@ export class BackendService {
    * Tell the backend to discard all previously uploaded files and start fresh
    */
   resetAsupFileUpload(): Observable<any> {
-    return this.http.delete(this.urls.asupFileUpload)
+    return this.http.delete(this.urls.asupFileUpload, {withCredentials: true})
       .pipe(
         catchError(this.handleError('resetAsupFileUpload'))
       );
@@ -157,7 +158,7 @@ export class BackendService {
     let payload: AsupFileAutoCoresLocation = {
       auto_cores_path: path
     };
-    return this.http.post(this.urls.asupFileAutoCoresLocation, payload)
+    return this.http.post(this.urls.asupFileAutoCoresLocation, payload, {withCredentials: true})
       .pipe(
         catchError(this.handleError('postAsupAutoCoresPath'))
       );
@@ -167,42 +168,42 @@ export class BackendService {
     let payload: AsupFileElysiumSerialNumber = {
       elysium_serial_number: serialNumber
     };
-    return this.http.post(this.urls.asupFileElysiumSerialNumber, payload)
+    return this.http.post(this.urls.asupFileElysiumSerialNumber, payload, {withCredentials: true})
       .pipe(
         catchError(this.handleError('postAsupElysiumSerialNumber'))
       );
   }
 
   getAsupFilesList(): Observable<AsupFileMetadata[]> {
-    return this.http.get<AsupFileMetadata[]>(this.urls.asupFilesList)
+    return this.http.get<AsupFileMetadata[]>(this.urls.asupFilesList, {withCredentials: true})
       .pipe(
         catchError(this.handleError('getAsupFilesList'))
       );
   }
 
   setSelectedAsupFilesList(list: AsupFileMetadata[]) {
-    return this.http.post<AsupFileMetadata[]>(this.urls.asupFilesList, list)
+    return this.http.post<AsupFileMetadata[]>(this.urls.asupFilesSelectedList, list, {withCredentials: true})
       .pipe(
         catchError(this.handleError('setSelectedAsupFilesList'))
       );
   }
 
   getReplicationContextsList(): Observable<ReplicationContext[]> {
-    return this.http.get<ReplicationContext[]>(this.urls.replicationContextsList)
+    return this.http.get<ReplicationContext[]>(this.urls.replicationContextsList, {withCredentials: true})
       .pipe(
         catchError(this.handleError('getReplicationContextsList'))
       );
   }
 
   setSelectedReplicationContextsList(list: ReplicationContext[]) {
-    return this.http.post<ReplicationContext[]>(this.urls.replicationContextsList, list)
+    return this.http.post<ReplicationContext[]>(this.urls.replicationContextsList, list, {withCredentials: true})
       .pipe(
         catchError(this.handleError('setSelectedReplicationContextsList'))
       );
   }
 
   getReplicationContextsAnalysisResult(): Observable<ReplicationContextAnalysisResult[]> {
-    return this.http.get<ReplicationContextAnalysisResult[]>(this.urls.replicationContextAnalysisResult)
+    return this.http.get<ReplicationContextAnalysisResult[]>(this.urls.replicationContextAnalysisResult, {withCredentials: true})
       .pipe(
         catchError(this.handleError('getReplicationContextsAnalysisResult'))
       );

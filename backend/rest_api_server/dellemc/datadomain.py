@@ -833,13 +833,10 @@ class DataDomain():
                             'entity_type': 'NONE'
                         },
                         'action_item': {
-                            'one_liner': 'This context is in balance. There is no clear bottleneck.',
+                            'one_liner': 'This context is in balance. There is no clear bottleneck. It should not have any replication lag.',
                             'list_of_steps': [  # Empty list if not needed
-                                'No actions required.'
-
                             ],
-                            'footnote': 'This context is in balance. It should not have any replication lag.'
-                        # Blank string if not needed
+                            'footnote': '' # Blank string if not needed
                         },
                         'details': 'The replication operations of this replication context are in balance, meaning that the time spent by local reading operations is in balance with the time spent on operations that depend on the network availability.<br>This context should be working properly, as there is no obvious bottleneck that is affecting the replication performance.'}
                     # This is a list, so we can have multiple suggested fixes for the same context, if applicable

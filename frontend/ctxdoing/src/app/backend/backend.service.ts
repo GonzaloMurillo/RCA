@@ -65,8 +65,9 @@ export class BackendService {
     asupFilesList: 'api/asup/metadata_list', // GET
     asupFilesSelectedList: 'api/asup/select', // POST
 
-    replicationContextsList: 'api/asup/analysis/replication_contexts', // GET, POST with ReplicationContext[]
-    replicationContextAnalysisResult: 'api/asup/analysis/replication_contexts/time_spent', // GET with ReplicationContextAnalysisResult[]
+    replicationContextsList: 'api/replctx/list', // GET with ReplicationContext[]
+    replicationContextsSelectedList: 'api/replctx/select', // POST with ReplicationContext[]
+    replicationContextAnalysisResult: 'api/replctx/analyze', // GET with ReplicationContextAnalysisResult[]
   }
 
   is_logged_in: boolean = false;
@@ -196,7 +197,7 @@ export class BackendService {
   }
 
   setSelectedReplicationContextsList(list: ReplicationContext[]) {
-    return this.http.post<ReplicationContext[]>(this.urls.replicationContextsList, list, {withCredentials: true})
+    return this.http.post<ReplicationContext[]>(this.urls.replicationContextsSelectedList, list, {withCredentials: true})
       .pipe(
         catchError(this.handleError('setSelectedReplicationContextsList'))
       );

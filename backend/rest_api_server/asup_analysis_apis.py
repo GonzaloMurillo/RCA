@@ -61,9 +61,6 @@ class AsupView(FlaskView):
 
         return path_list
 
-    def _set_available_files_path_list(self, files):
-        session['ASUP_FILE_UPLOAD_PATH_LIST'] = files
-
     @classmethod
     def get_selected_files_path_list(cls):
         """
@@ -78,6 +75,14 @@ class AsupView(FlaskView):
             path_list = session['ASUP_FILE_UPLOAD_SELECTED_PATH_LIST']
 
         return path_list
+
+    def _set_selected_files_path_list(self, list):
+        """
+        Set the list of user selected ASUPs in the current session
+
+        :param list: List of strings
+        """
+        session['ASUP_FILE_UPLOAD_SELECTED_PATH_LIST'] = list
 
     def _set_asup_input_method(self, method):
         """
@@ -124,16 +129,13 @@ class AsupView(FlaskView):
             f = request.files['asup']
             file_save_path = os.path.join(self._get_asup_file_save_path(), f.filename)
             f.save(file_save_path)
-            available_files = self._get_available_files_path_list()
-            available_files.append(file_save_path)
-            self._set_available_files_path_list(available_files)
-
+            self._get_available_files_path_list().append(file_save_path)
             self._set_asup_input_method(self.ASUP_FILE_INPUT_METHODS['FILE_UPLOAD'])
             _log.info('[asup_file_input_method=FILE_UPLOAD] ASUP file saved locally as: %s', file_save_path)
 
         elif request.method == 'DELETE':
             _log.info("Reset uploaded ASUP files")
-            self._set_available_files_path_list([])
+            self._get_available_files_path_list().clear()
             self.get_selected_files_path_list().clear()
 
         return (jsonify({}),
@@ -209,7 +211,7 @@ class AsupView(FlaskView):
                 200,
                 {'ContentType': 'application/json'})
 
-    @route("/select", methods=['POST'])
+    @route("select", methods=['POST'])
     def select(self):
         """
         Select one or more ASUP files for analysis
@@ -217,8 +219,11 @@ class AsupView(FlaskView):
         :return:
         """
         selected_asup_files = json.loads(request.data)
-        self.get_selected_files_path_list().extend(selected_asup_files)
-        _log.info("Selected ASUP files for analysis: %s", selected_asup_files)
+        existing_list = self.get_selected_files_path_list()
+        existing_list.extend(selected_asup_files)
+        self._set_selected_files_path_list(existing_list)
+
+        _log.info("Selected ASUP files for analysis: %s", existing_list)
 
         return (jsonify({}),
                 200,
@@ -232,6 +237,34 @@ class ReplCtxView(FlaskView):
     /api/replctx/...
     """
     route_prefix = app.config['URL_DEFAULT_PREFIX_FOR_API']
+
+    dd_engines = {}
+
+    def _save_dd_engine_for_session(self, dd):
+        """
+        Save the Data Domain engine object for the current session
+
+        :param dd:
+        """
+        current_user_email = flask_login.current_user.email
+        _log.debug("Save DD object %s for session '%s'", dd, current_user_email)
+        self.dd_engines[current_user_email] = dd
+
+    def _get_dd_engine_for_session(self):
+        """
+        Get the previously saved DD engine object for the current session
+
+        :return: Instance of DataDomain
+        """
+        current_user_email = flask_login.current_user.email
+        _log.debug("Get DD object for session '%s'", current_user_email)
+        return self.dd_engines[current_user_email]
+
+    def _set_selected_replication_contexts(self, list):
+        session['REPLICATION_CTX_SELECTED_LIST'] = list
+
+    def _get_selected_replication_contexts(self):
+        return session.get('REPLICATION_CTX_SELECTED_LIST', [])
 
     def list(self):
         selected_asup_files = AsupView.get_selected_files_path_list()
@@ -314,6 +347,63 @@ class ReplCtxView(FlaskView):
                 selected_asup_files[0]['filePath'], data_domain[0].serial_number, selected_asup_files[1]['filePath'],
                 data_domain[1].serial_number), 405, {'ContentType': 'text/html'})
 
+        _log.debug("START of the method to display the contexts of the autosuport that has being uploaded")
+        repl_ctx_list = []
+        _log.debug("Replication Contexts frontend {}".format(dd.replication_contexts_frontend))
+
+        for item in dd.replication_contexts_frontend:  # In dd.replication_contexts_frontend, we have just the contexts displayed in the frontend, but we want to filter from them just to display source and valid replication contexts
+            _log.debug("Searching for just source replication contexts")
+            if (dd.is_source_context(item['ctx'])):
+                _log.debug("The context{}, is a source replication context".format(item))
+                _log.debug(
+                    "Adding the context number:{} to the list of source and valid replication contexts".format(item))
+                repl_ctx_list.append(item)
+
+        _log.debug("Found %d source and valid replication contexts", len(repl_ctx_list))
+        _log.debug("List to jsonify {}".format(repl_ctx_list))
+        _log.debug("END of the method to display the contexts of the autosuport that has being uploaded")
+
+        # Save the Data Domain object for the current session
+        self._save_dd_engine_for_session(dd)
+
+        return (jsonify(repl_ctx_list),
+                200,
+                {'ContentType': 'application/json'})
+
+    @route('select', methods=['POST'])
+    def select(self):
+        selected_replication_contexts = json.loads(request.data)
+        self._set_selected_replication_contexts(selected_replication_contexts)
+
+        _log.info("Selected replication contexts for session '%s' analysis: %s",
+                  flask_login.current_user.email, selected_replication_contexts)
+
+        return (jsonify({}),
+                200,
+                {'ContentType': 'application/json'})
+
+    def analyze(self):
+        selected_replication_contexts = self._get_selected_replication_contexts()
+        dd = self._get_dd_engine_for_session()
+
+        # Call get_replication_analysis to analyze selected replication contexts
+        _log.debug("Selected contexts for analysis: {}".format(selected_replication_contexts))
+
+        temporal_data_structure = dd.get_replication_analysis(selected_replication_contexts, app)
+
+        if (temporal_data_structure == -1):  # This happens if the difference for one context between 2 dates is negative
+
+            return (
+            "<strong>NEGATIVE DELTA DIFFERENCE</strong><br><br>This could happen when the difference in the metrics for one context between two dates is negative.<br><br>If the DDFS has been restarted between the two selected dates, this error is normal because 'Lrepl Client Time Stats' is a cumulative metric that start from 0 whenever the FS is restarted.<br><br>In that case use the 'Single Autosupport Upload' to obtain metrics.<br>Otherwise report a problem sending an e-mail: gonzalo.murillotello@dell.com.",
+            405, {'ContentType': 'text/html'})
+
+        else:
+
+            final_data_structure = temporal_data_structure
+
+            return (jsonify(final_data_structure),
+                    200,
+                    {'ContentType': 'application/json'})
 
 AsupView.register(app)
 ReplCtxView.register(app)
@@ -341,23 +431,7 @@ def replication_contexts_list():
 
     if request.method == 'GET':
 
-        _log.debug("START of the method to display the contexts of the autosuport that has being uploaded")
-        repl_ctx_list = []
-        _log.debug("Replication Contexts frontend {}".format(dd.replication_contexts_frontend))
-        for item in dd.replication_contexts_frontend: # In dd.replication_contexts_frontend, we have just the contexts displayed in the frontend, but we want to filter from them just to display source and valid replication contexts
-            _log.debug("Searching for just source replication contexts")
-            if(dd.is_source_context(item['ctx'])):
-                _log.debug("The context{}, is a source replication context".format(item))
-                _log.debug("Adding the context number:{} to the list of source and valid replication contexts".format(item))
-                repl_ctx_list.append(item)
-
-
-        _log.debug("Found %d source and valid replication contexts", len(repl_ctx_list))
-        _log.debug("List to jsonify {}".format(repl_ctx_list))
-        _log.debug("END of the method to display the contexts of the autosuport that has being uploaded")
-        return (jsonify(repl_ctx_list),
-                200,
-                {'ContentType': 'application/json'})
+        pass
 
     # Is this if we click backwards in the browser?
     elif request.method == 'POST':

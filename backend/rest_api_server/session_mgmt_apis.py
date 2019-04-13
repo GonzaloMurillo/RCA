@@ -36,7 +36,7 @@ def load_user(user_id):
     return DellUser.get(user_id)
 
 
-@app.route("/api/login", methods=['GET', 'POST'])
+@app.route("/api/login/", methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         creds = json.loads(request.data)
@@ -69,7 +69,7 @@ def login():
                 {'ContentType': 'application/json'})
 
 
-@app.route("/api/logout", methods=['GET'])
+@app.route("/api/logout/", methods=['GET'])
 def logout():
     _log.info("Logged out user: %s", flask_login.current_user)
     logout_user()

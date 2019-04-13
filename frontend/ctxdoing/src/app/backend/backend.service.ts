@@ -55,20 +55,20 @@ export interface ReplicationContextAnalysisResult {
 export class BackendService {
 
   urls = {
-    version: 'api/version',           // GET
+    version: 'api/version/',           // GET
 
-    login: 'api/login', // POST
-    logout: 'api/logout', //GET
+    login: 'api/login/', // POST
+    logout: 'api/logout/', //GET
     
-    asupFileUpload: 'api/asup/upload',  // POST with FormData
-    asupFileAutoCoresLocation: 'api/asup/auto_cores_path',  // POST with AsupFileAutoCoresLocation
-    asupFileElysiumSerialNumber: 'api/asup/elysium',  // POST with AsupFileElysiumSerialNumber
-    asupFilesList: 'api/asup/metadata_list', // GET
-    asupFilesSelectedList: 'api/asup/select', // POST
+    asupFileUpload: 'api/asup/upload/',  // POST with FormData
+    asupFileAutoCoresLocation: 'api/asup/auto_cores_path/',  // POST with AsupFileAutoCoresLocation
+    asupFileElysiumSerialNumber: 'api/asup/elysium/',  // POST with AsupFileElysiumSerialNumber
+    asupFilesList: 'api/asup/metadata_list/', // GET
+    asupFilesSelectedList: 'api/asup/select/', // POST
 
-    replicationContextsList: 'api/replctx/list', // GET with ReplicationContext[]
-    replicationContextsSelectedList: 'api/replctx/select', // POST with ReplicationContext[]
-    replicationContextAnalysisResult: 'api/replctx/analyze', // GET with ReplicationContextAnalysisResult[]
+    replicationContextsList: 'api/replctx/list/', // GET with ReplicationContext[]
+    replicationContextsSelectedList: 'api/replctx/select/', // POST with ReplicationContext[]
+    replicationContextAnalysisResult: 'api/replctx/analyze/', // GET with ReplicationContextAnalysisResult[]
   }
 
   is_logged_in: boolean = false;

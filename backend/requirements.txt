@@ -8,3 +8,5 @@ PyInstaller
 dis3
 # On Ubuntu, run 'sudo apt-get install python3-tk' first
 matplotlib
+fpdf
+gunicorn

@@ -29,13 +29,16 @@ runtime_path = bootstrap.get_runtime_path()
 app = Flask(__name__)
 
 # Need Cross-origin headers for local development
-CORS(app)
+CORS(app, supports_credentials=True)
 
 app.config['RUNTIME_WORKING_DIR'] = runtime_path
 app.config['STATIC_DIR_PATH'] = os.path.join(runtime_path, "static")
 
 _log.debug("RUNTIME_WORKING_DIR: %s", app.config['RUNTIME_WORKING_DIR'])
 _log.debug("STATIC_DIR_PATH: %s", app.config['STATIC_DIR_PATH'])
+
+# Route prefix for class-based views
+app.config['URL_DEFAULT_PREFIX_FOR_API'] = "/api"
 
 # Setup session management
 app.secret_key = os.urandom(24)
@@ -47,3 +50,6 @@ import rest_api_server.default_routes
 import rest_api_server.session_mgmt_apis
 import rest_api_server.common_apis
 import rest_api_server.asup_analysis_apis
+
+# Start the session auto-expiry thread
+session_mgmt_apis.start_auto_expire_session_scheduler()

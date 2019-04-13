@@ -4,7 +4,8 @@ from util import version, logger
 from rest_api_server.dellemc.replicationcontextplot import ReplicationContextPlot
 from rest_api_server.dellemc.pdfhelper import PDFHelper
 # from pdfhelper import PDFHelper
-import os,datetime
+import os
+from datetime import datetime
 _log = logger.get_logger(__name__)
 
 
@@ -67,6 +68,8 @@ class DataDomain():
         self.num_of_replication_contexts=0
         self.hostname=""
         self.serial_number=""
+
+        self.last_used_timestamp = datetime.now()
         return
 
     # Object methods
@@ -833,13 +836,10 @@ class DataDomain():
                             'entity_type': 'NONE'
                         },
                         'action_item': {
-                            'one_liner': 'This context is in balance. There is no clear bottleneck.',
+                            'one_liner': 'This context is in balance. There is no clear bottleneck. It should not have any replication lag.',
                             'list_of_steps': [  # Empty list if not needed
-                                'No actions required.'
-
                             ],
-                            'footnote': 'This context is in balance. It should not have any replication lag.'
-                        # Blank string if not needed
+                            'footnote': '' # Blank string if not needed
                         },
                         'details': 'The replication operations of this replication context are in balance, meaning that the time spent by local reading operations is in balance with the time spent on operations that depend on the network availability.<br>This context should be working properly, as there is no obvious bottleneck that is affecting the replication performance.'}
                     # This is a list, so we can have multiple suggested fixes for the same context, if applicable

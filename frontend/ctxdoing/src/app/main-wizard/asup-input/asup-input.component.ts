@@ -1,7 +1,7 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { LoggerService } from 'src/app/util/logger.service';
 import { ErrorDialogComponent } from 'src/app/error-dialog/error-dialog.component';
-import { ClrForm, ClrInputContainer } from '@clr/angular';
+import { ClrForm, ClrInputContainer, ClrLoadingState } from '@clr/angular';
 import { Router } from '@angular/router';
 import { BackendService } from 'src/app/backend/backend.service';
 
@@ -18,6 +18,7 @@ export class AsupInputComponent implements OnInit {
   @ViewChild("asupFromElysiumSerialNumberContainer") asupFromElysiumSerialNumberContainer: ClrInputContainer;
   @ViewChild("errorDialog") errorDialog: ErrorDialogComponent;
 
+  analyzeButtonLoading = ClrLoadingState.DEFAULT;
   asupFileSpecificationMethod: string = 'upload';
   localAsupFileUpload: any;
   filesUploaded: number = 0;
@@ -68,6 +69,7 @@ export class AsupInputComponent implements OnInit {
       return;
     }
 
+    this.analyzeButtonLoading = ClrLoadingState.LOADING;
     switch (this.asupFileSpecificationMethod) {
       case 'upload': {
         this.backend.resetAsupFileUpload().subscribe(
@@ -75,6 +77,7 @@ export class AsupInputComponent implements OnInit {
             for (var _i = 0; _i < this.localAsupFileUpload.length; _i++) {
               this.backend.postAsupFile(this.localAsupFileUpload[_i]).subscribe(
                 data => {
+                  this.analyzeButtonLoading = ClrLoadingState.SUCCESS;
                   // Don't try to access _i here, since we are inside an async callback
                   this.log.info("Successfully uploaded ASUP file to backend");
                   this.filesUploaded++;
@@ -85,12 +88,14 @@ export class AsupInputComponent implements OnInit {
                   }
                 },
                 error => {
+                  this.analyzeButtonLoading = ClrLoadingState.ERROR;
                   this.errorDialog.showError("Failed to upload ASUP file(s): " + error);
                 }
               );
             }
           },
           error => {
+            this.analyzeButtonLoading = ClrLoadingState.ERROR;
             this.errorDialog.showError("Failed to reset upload state on the backend: " + error);
           }
         );
@@ -100,11 +105,13 @@ export class AsupInputComponent implements OnInit {
       case 'autoCores': {
         this.backend.postAsupAutoCoresPath(this.asupFileAutoCoresPath).subscribe(
           data => {
+            this.analyzeButtonLoading = ClrLoadingState.SUCCESS;
             this.log.info("Successfully posted ASUP file location'", this.asupFileAutoCoresPath, "' to backend");
             // Navigate to the next page
             this.router.navigate(['replication-ctx-selection']);
           },
           error => {
+            this.analyzeButtonLoading = ClrLoadingState.ERROR;
             this.errorDialog.showError("Failed to post ASUP file location: " + error);
           }
         );
@@ -114,11 +121,13 @@ export class AsupInputComponent implements OnInit {
       case 'elysium': {
         this.backend.postAsupElysiumSerialNumber(this.asupFromElysiumSerialNumber).subscribe(
           data => {
+            this.analyzeButtonLoading = ClrLoadingState.SUCCESS;
             this.log.info("Successfully posted Elysium serial number '", this.asupFromElysiumSerialNumber, "' to backend");
             // Navigate to the next page
             this.router.navigate(['replication-ctx-selection']);
           },
           error => {
+            this.analyzeButtonLoading = ClrLoadingState.ERROR;
             this.errorDialog.showError("Failed to post Elysium serial number: " + error);
           }
         );
@@ -126,6 +135,7 @@ export class AsupInputComponent implements OnInit {
         break;
       }
       default: { // This should never happen
+        this.analyzeButtonLoading = ClrLoadingState.ERROR;
         this.errorDialog.showError("Internal GUI error");
       }
     }

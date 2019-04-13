@@ -3,6 +3,7 @@ import { ErrorDialogComponent } from 'src/app/error-dialog/error-dialog.componen
 import { Router } from '@angular/router';
 import { BackendService, AsupFileMetadata } from 'src/app/backend/backend.service';
 import { LoggerService } from 'src/app/util/logger.service';
+import { ClrLoadingState } from '@clr/angular';
 
 @Component({
   selector: 'app-select-asup',
@@ -13,6 +14,8 @@ export class SelectAsupComponent implements OnInit {
 
   @ViewChild("errorDialog") errorDialog: ErrorDialogComponent;
   
+  analyzeButtonLoading = ClrLoadingState.DEFAULT;
+  datagridLoading: boolean = true;
   selectedRows: any[] = [];
   asupFiles: AsupFileMetadata[];
 
@@ -26,10 +29,12 @@ export class SelectAsupComponent implements OnInit {
 
     this.backend.getAsupFilesList().subscribe(
       data => {
+        this.datagridLoading = false;
         this.log.info("Retrieved ASUP files list from backend: ", data);
         this.asupFiles = data;
       },
       error => {
+        this.datagridLoading = false;
         this.errorDialog.showError("Failed to read ASUP file(s): " + error);
       }
     );
@@ -49,13 +54,16 @@ export class SelectAsupComponent implements OnInit {
       return;
     }
 
+    this.analyzeButtonLoading = ClrLoadingState.LOADING;
     this.backend.setSelectedAsupFilesList(this.selectedRows).subscribe(
       data => {
+        this.analyzeButtonLoading = ClrLoadingState.SUCCESS;
         this.log.info("Posted selected ASUP files list to backend")
         // Navigate to the next page
         this.router.navigate(['replication-ctx-selection']);
       },
       error => {
+        this.analyzeButtonLoading = ClrLoadingState.ERROR;
         this.errorDialog.showError("Failed to select ASUP files for analysis: " + error);
       }
     );

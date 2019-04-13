@@ -48,7 +48,7 @@ It identifies bottlenecks by analyzing the time spent by each function performed
 -->
   <br />
 
-  <button class="btn btn-primary" type="submit" (click)="selectAsupAndProceed()">
+  <button [clrLoading]="analyzeButtonLoading" class="btn btn-primary" type="submit" (click)="selectAsupAndProceed()">
     <clr-icon shape="search"></clr-icon> Analyze
   </button>
 </form>

@@ -1,9 +1,12 @@
 <clr-modal [(clrModalOpen)]="showErrorModal" [clrModalClosable]="false">
-    <h3 class="modal-title">Sorry... Something unexpected has happen</h3>
-    <div class="modal-body">
-      <div [innerHTML]="errorMessage"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-primary" type="button" (click)="updateVisibilityState(false)">Ok</button>
+  <h3 class="modal-title">Sorry... Something unexpected has happen</h3>
+  <div class="modal-body">
+    <div [innerHTML]="errorMessage"></div>
   </div>
-  </clr-modal>
+  <div class="modal-footer">
+    <button class="btn btn-primary" type="button" (click)="updateVisibilityState(false)">Ok</button>
+    <a href="mailto:Gonzalo.MurilloTello@emc.com?subject=[Replication Contexts Analyzer] - Problem Reporting&body={{emailBodyTemplate}}">
+      <button [clrLoading]="reportButtonLoading" class="btn" type="button" (click)="reportIssue()">Report Issue</button>
+    </a>
+  </div>
+</clr-modal>

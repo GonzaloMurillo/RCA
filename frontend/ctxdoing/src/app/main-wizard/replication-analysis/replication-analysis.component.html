@@ -11,7 +11,7 @@
                 <td>
                   <p class="repl-details-header">
                     <span class="label">{{c.ctxDetails.source.host}}
-                      <span class="badge badge-info">{{c.ctxDetails.source.eth_interface}}</span>
+                      <span class="badge badge-info badge-right">{{c.ctxDetails.source.eth_interface}}</span>
                     </span> <br />
                     {{c.ctxDetails.source.mtree}}
                   </p>
@@ -22,7 +22,7 @@
                 <td>
                   <p class="repl-details-header">
                     <span class="label">
-                      <span class="badge badge-info" *ngIf="c.ctxDetails.destination.eth_interface">{{c.ctxDetails.destination.eth_interface}}</span>
+                      <span class="badge badge-info badge-left" *ngIf="c.ctxDetails.destination.eth_interface">{{c.ctxDetails.destination.eth_interface}}</span>
                       {{c.ctxDetails.destination.host}}
                     </span> <br />
                     {{c.ctxDetails.destination.mtree}}

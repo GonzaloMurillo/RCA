@@ -78,7 +78,7 @@ class AsupView(FlaskView):
         :return: List of strings
         """
         path_list = os.listdir(self._get_asup_file_save_path())
-        path_list = map(lambda filename: os.path.join(self._get_asup_file_save_path(), filename), path_list)
+        path_list = list(map(lambda filename: os.path.join(self._get_asup_file_save_path(), filename), path_list))
         _log.debug("ASUP files available for current session: %s", path_list)
 
         return path_list

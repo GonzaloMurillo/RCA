@@ -13,7 +13,7 @@
       <!-- <clr-password-container>
               <input type="password" name="password" clrPassword placeholder="Password" [(ngModel)]="loginCredentials.password"/>
           </clr-password-container> -->
-      <button type="submit" class="btn btn-primary" (click)="onLogin()"
+      <button [clrLoading]="loginButtonLoading" type="submit" class="btn btn-primary" (click)="onLogin()"
         [disabled]="email.invalid">LOGIN</button>
     </div>
   </form>

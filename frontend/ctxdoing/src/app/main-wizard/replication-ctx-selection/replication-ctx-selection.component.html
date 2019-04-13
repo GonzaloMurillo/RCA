@@ -2,7 +2,7 @@
 <p><strong><u>Note:</u></strong> Only source replication contexts are displayed (destination contexts do not contain the required information)</p>
 <p>Please select the context or contexts that you want to analyze:</p>
 
-<clr-datagrid [(clrDgSelected)]="selectedRows">
+<clr-datagrid [(clrDgSelected)]="selectedRows" [clrDgLoading]="datagridLoading">
     <clr-dg-column clrDgField="ctx" class="ctx-number-column">Context</clr-dg-column>
     <clr-dg-column clrDgField="source.host">Source Host</clr-dg-column>
     <clr-dg-column clrDgField="source.mtree">Source Mtree</clr-dg-column>
@@ -17,12 +17,12 @@
         <clr-dg-cell>{{row.destination.mtree}}</clr-dg-cell>
     </clr-dg-row>
 
-    <clr-dg-footer>{{selectedRows.length}} replication contexts will be anlyzed.</clr-dg-footer>
+    <clr-dg-footer>{{selectedRows.length}} replication contexts will be analyzed.</clr-dg-footer>
 </clr-datagrid>
 
 <br />
 
-<button class="btn btn-primary" type="button" (click)="selectReplicationContextsAndProceed()">
+<button [clrLoading]="analyzeButtonLoading" class="btn btn-primary" type="button" (click)="selectReplicationContextsAndProceed()">
   <clr-icon shape="search"></clr-icon> Analyze
 </button>
 

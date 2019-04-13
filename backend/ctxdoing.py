@@ -5,6 +5,8 @@ import util.bootstrap
 import os, sys, signal
 
 import util.logger as logger
+from rest_api_server.asup_analysis_apis import AsupView
+
 _log = logger.get_logger(__name__)
 
 # Flask 'app' module, initialized when imported
@@ -21,7 +23,7 @@ def cleanup_before_shutdown():
     ''' Placeholder for cleanup operations, if any
     This function is called when the user stops the app by pressing ctrl+C
     '''
-    pass
+    AsupView.delete_all_uploaded_files()
 
 # Function pointers to be called on Flask app shutdown
 SHUTDOWN_CALLBACKS = [cleanup_before_shutdown]

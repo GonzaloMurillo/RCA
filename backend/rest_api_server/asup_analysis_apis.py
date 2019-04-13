@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # coding=utf-8
+import shutil
+import tempfile
+
 import flask_login
 from flask import jsonify, request, session
 from flask_classy import FlaskView, route
@@ -24,13 +27,18 @@ class AsupView(FlaskView):
     """
     decorators = [login_required]
     route_prefix = app.config['URL_DEFAULT_PREFIX_FOR_API']
-    asup_file_save_path_base = app.config['RUNTIME_WORKING_DIR']
+    asup_file_save_path_base = tempfile.mkdtemp()
 
     ASUP_FILE_INPUT_METHODS = {
         'FILE_UPLOAD': 'FILE_UPLOAD',
         'AUTO_CORES_PATH': 'AUTO_CORES_PATH',
         'ELYSIUM_SERIAL_NUMBER': 'ELYSIUM_SERIAL_NUMBER'
         }
+
+    @classmethod
+    def delete_all_uploaded_files(cls):
+        _log.info("Deleting all uploaded ASUP files at: %s", cls.asup_file_save_path_base)
+        shutil.rmtree(cls.asup_file_save_path_base, ignore_errors=True)
 
     @classmethod
     def asup_directory_for_user(cls, user):
@@ -144,7 +152,14 @@ class AsupView(FlaskView):
 
             f = request.files['asup']
             file_save_path = os.path.join(self._get_asup_file_save_path(), f.filename)
-            f.save(file_save_path)
+            try:
+                f.save(file_save_path)
+            except:
+                _log.exeption("Failed to save uploaded file to disk: %s", file_save_path)
+                return ("Failed to save the uploaded file on the server, please report this issue.",
+                        500,
+                        {'ContentType': 'text/html'})
+
             self._get_available_files_path_list().append(file_save_path)
             self._set_asup_input_method(self.ASUP_FILE_INPUT_METHODS['FILE_UPLOAD'])
             _log.info('[asup_file_input_method=FILE_UPLOAD] ASUP file saved locally as: %s', file_save_path)

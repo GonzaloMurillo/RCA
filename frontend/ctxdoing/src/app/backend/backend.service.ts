@@ -5,6 +5,7 @@ import { ErrorObservable } from 'rxjs/observable/ErrorObservable';
 import { catchError, retry } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { LoggerService } from '../util/logger.service';
+import { Router } from '@angular/router';
 
 export interface BackendVersion {
   version: string;
@@ -73,7 +74,7 @@ export class BackendService {
   is_logged_in: boolean = false;
   logged_in_user: LoginCredentials;
 
-  constructor(private log: LoggerService, private http: HttpClient) { }
+  constructor(private log: LoggerService, private http: HttpClient, private router: Router) { }
 
   /**
    * Common handler for all REST API call failures
@@ -102,6 +103,12 @@ export class BackendService {
         errorMessage = error.error;
       } else {
         this.log.error(`${operation} failed: `, error.message);
+      }
+
+      // If the session has expired, redirect to the login page
+      if (error.status == 401) {
+        this.doLogout();
+        this.router.navigate(['login']);
       }
 
       return throwError(errorMessage);

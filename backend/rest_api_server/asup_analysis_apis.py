@@ -3,14 +3,14 @@
 import flask_login
 from flask import jsonify, request, session
 from flask_classy import FlaskView, route
+from flask_login import login_required, logout_user
 
 from rest_api_server import app
-import datetime
 import time
 import os
-from util import version, logger
+
+from util import logger
 import json
-import shutil
 from rest_api_server.dellemc.datadomain import DataDomain
 # from pdfhelper import PDFHelper
 
@@ -22,6 +22,7 @@ class AsupView(FlaskView):
 
     /api/asup/...
     """
+    decorators = [login_required]
     route_prefix = app.config['URL_DEFAULT_PREFIX_FOR_API']
     asup_file_save_path_base = app.config['RUNTIME_WORKING_DIR']
 
@@ -199,6 +200,11 @@ class AsupView(FlaskView):
         """
         asup_files = []
 
+        if not len(self._get_available_files_path_list()):
+            # We should never get to this point without having selected at lease one ASUP file, so this means
+            # the user session has expired
+            return force_logout()
+
         # ASUP_FILE_INPUT_METHOD doesn't matter, the path to all available files is populated in all methods
         for f in self._get_available_files_path_list():
             asup_file_save_path_escaped = f.encode("utf-8")
@@ -238,7 +244,8 @@ class AsupView(FlaskView):
         existing_list.extend(selected_asup_files)
         self._set_selected_files_path_list(existing_list)
 
-        _log.info("Selected ASUP files for analysis: %s", existing_list)
+        _log.info("User '%s' selected %d ASUP files for analysis: %s",
+                  flask_login.current_user.email, len(existing_list), existing_list)
 
         return (jsonify({}),
                 200,
@@ -251,6 +258,7 @@ class ReplCtxView(FlaskView):
 
     /api/replctx/...
     """
+    decorators = [login_required]
     route_prefix = app.config['URL_DEFAULT_PREFIX_FOR_API']
 
     dd_engines = {}
@@ -303,6 +311,11 @@ class ReplCtxView(FlaskView):
         selected_asup_files = AsupView.get_selected_files_path_list()
         number_of_asup_files = len(selected_asup_files)
         _log.debug("Selected %d ASUP files for RCA: %s", number_of_asup_files, selected_asup_files)
+
+        if not number_of_asup_files:
+            # We should never get to this point without having selected at lease one ASUP file, so this means
+            # the user session has expired
+            return force_logout()
 
         if (number_of_asup_files == 1):
             asup_file_save_path_escaped = selected_asup_files[0]['filePath'].encode(
@@ -416,8 +429,11 @@ class ReplCtxView(FlaskView):
                 {'ContentType': 'application/json'})
 
     def analyze(self):
-        selected_replication_contexts = self._get_selected_replication_contexts()
-        dd = self._get_dd_engine_for_session()
+        try:
+            selected_replication_contexts = self._get_selected_replication_contexts()
+            dd = self._get_dd_engine_for_session()
+        except KeyError:
+            return force_logout()
 
         # Call get_replication_analysis to analyze selected replication contexts
         _log.debug("Selected contexts for analysis: {}".format(selected_replication_contexts))
@@ -440,3 +456,19 @@ class ReplCtxView(FlaskView):
 
 AsupView.register(app)
 ReplCtxView.register(app)
+
+
+def force_logout():
+    """
+    Attempting to access persistent objects after a session as (auto-)expired will cause an exception,
+    to handle this we force logout the current user to start over
+
+    This cannot be in session_mgmt_apis.py because it imports the current module and will cause a circular dependency
+
+    :return: HTTP response
+    """
+    _log.info("Forcing logout for expired session '%s'", flask_login.current_user.email)
+    _log.debug("User had session args: %s", session)
+    logout_user()
+
+    return ("", 401, {})

@@ -3,7 +3,6 @@
 import threading
 
 import flask_login
-import schedule
 from flask import jsonify, request, session
 from flask_login import login_user, logout_user
 import json
@@ -20,10 +19,10 @@ from util import logger
 _log = logger.get_logger(__name__)
 
 # Time after which a session is considered to be inactive and automatically expired
-AUTO_EXPIRE_SESSION_TIMEOUT = timedelta(seconds=15)
+AUTO_EXPIRE_SESSION_TIMEOUT = timedelta(minutes=30)
 
 # Check for expired sessions at this interval (in minutes)
-AUTO_EXPIRE_SESSION_INTERVAL = 10
+AUTO_EXPIRE_SESSION_INTERVAL = 15
 
 
 @login_manager.user_loader
@@ -81,20 +80,28 @@ def logout():
 
 
 def auto_expire_sessions():
-    sessions = ReplCtxView.get_dd_engine_objects()
+    """
+    Walk the list of DD engine objects currently in-memory and for each object:
+        1. Check if the object has expired by looking at the last used timestamp
+        2. For expired objetcts,
+            a. Delete the reference to the object
+            b. Delete all ASUP files uploaded for this user session
+    """
+    dd_engines = ReplCtxView.get_dd_engine_objects()
     current_time = datetime.now()
 
-    _log.info("[AUTO_EXPIRE] Begin auto-expiring %d sessions...", len(sessions))
+    _log.info("[AUTO_EXPIRE] Begin auto-expiring %d DD engine objects...", len(dd_engines))
 
     # Don't iterate over the dict itself because we are popping elements in it, create a copy of its keys instead
-    for user in list(sessions):
-        dd_obj = sessions[user]
-        _log.debug("[AUTO_EXPIRE] Session for '%s' last used at %s with %s",
+    for user in list(dd_engines):
+        dd_obj = dd_engines[user]
+        _log.debug("[AUTO_EXPIRE] DD engine for '%s' last used at %s with %s",
                    user, dd_obj.last_used_timestamp, dd_obj)
         if (current_time - dd_obj.last_used_timestamp) >= AUTO_EXPIRE_SESSION_TIMEOUT:
             _log.info("[AUTO_EXPIRE] Session for '%s' has expired", user)
 
-            # Delete the reference to the DataDomain object
+            # Delete the reference to the DataDomain object - do not delete the object itself here, it will be
+            # auto-removed when the ref count reaches 0
             ReplCtxView.remove_dd_engine_object_for_user(user)
 
             # Delete ASUP files for this user, if any
@@ -110,7 +117,7 @@ def auto_expire_session_scheduler_thread():
     while True:
         _log.info("[AUTO_EXPIRE] Check for expired sessions every %d minutes", AUTO_EXPIRE_SESSION_INTERVAL)
         auto_expire_sessions()
-        time.sleep(AUTO_EXPIRE_SESSION_INTERVAL)
+        time.sleep(AUTO_EXPIRE_SESSION_INTERVAL * 60)
 
 
 def start_auto_expire_session_scheduler():

@@ -14,7 +14,7 @@
       </div>
   </div>
 </div>
-<clr-datagrid [(clrDgSelected)]="selectedRows">
+<clr-datagrid [(clrDgSelected)]="selectedRows" [clrDgLoading]="datagridLoading">
     <clr-dg-column clrDgField="filePath">ASUP File</clr-dg-column>
     <clr-dg-column clrDgField="generatedDate">Generated On</clr-dg-column>
 
@@ -28,7 +28,7 @@
 
 <br />
 
-<button class="btn btn-primary" type="button" (click)="selectAsupFilesAndProceed()">
+<button [clrLoading]="analyzeButtonLoading" class="btn btn-primary" type="button" (click)="selectAsupFilesAndProceed()">
   <clr-icon shape="search"></clr-icon> Analyze
 </button>
 

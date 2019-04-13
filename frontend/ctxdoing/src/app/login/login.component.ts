@@ -3,6 +3,7 @@ import { LoggerService } from '../util/logger.service';
 import { LoginCredentials, BackendService } from '../backend/backend.service';
 import { ErrorDialogComponent } from '../error-dialog/error-dialog.component';
 import { Router } from '@angular/router';
+import { ClrLoadingState } from '@clr/angular';
 
 @Component({
   selector: 'app-login',
@@ -12,6 +13,8 @@ import { Router } from '@angular/router';
 export class LoginComponent implements OnInit {
 
   @ViewChild("errorDialog") errorDialog: ErrorDialogComponent;
+
+  loginButtonLoading = ClrLoadingState.DEFAULT;
 
   loginCredentials: LoginCredentials = {
     email: ''
@@ -27,13 +30,17 @@ export class LoginComponent implements OnInit {
   }
 
   onLogin() {
+    this.loginButtonLoading = ClrLoadingState.LOADING;
+
     this.log.info("Login as: ", this.loginCredentials);
 
     this.backend.doLogin(this.loginCredentials).subscribe(
       data => {
+        this.loginButtonLoading = ClrLoadingState.SUCCESS;
         this.router.navigate(['asup-input']);
       },
       error => {
+        this.loginButtonLoading = ClrLoadingState.ERROR;
         this.errorDialog.showError("Failed to login as '" + this.loginCredentials.email + "'<br><br>" + error);
       }
     );

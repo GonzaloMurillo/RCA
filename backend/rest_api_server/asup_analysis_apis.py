@@ -255,12 +255,10 @@ class AsupView(FlaskView):
         :return:
         """
         selected_asup_files = json.loads(request.data)
-        existing_list = self.get_selected_files_path_list()
-        existing_list.extend(selected_asup_files)
-        self._set_selected_files_path_list(existing_list)
+        self._set_selected_files_path_list(selected_asup_files)
 
         _log.info("User '%s' selected %d ASUP files for analysis: %s",
-                  flask_login.current_user.email, len(existing_list), existing_list)
+                  flask_login.current_user.email, len(selected_asup_files), selected_asup_files)
 
         return (jsonify({}),
                 200,

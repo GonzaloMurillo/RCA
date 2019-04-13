@@ -137,7 +137,7 @@ class AsupView(FlaskView):
 
         return method
 
-    @route("upload", methods=['POST', 'DELETE'])
+    @route("upload/", methods=['POST', 'DELETE'])
     def upload(self):
         """
         Upload a single ASUP file from the browser
@@ -173,7 +173,7 @@ class AsupView(FlaskView):
                 200,
                 {'ContentType': 'application/json'})
 
-    @route("auto_cores_path", methods=['POST'])
+    @route("auto_cores_path/", methods=['POST'])
     def auto_cores_path(self):
         data = json.loads(request.data)
 
@@ -189,7 +189,7 @@ class AsupView(FlaskView):
                 200,
                 {'ContentType': 'application/json'})
 
-    @route("elysium", methods=['POST'])
+    @route("elysium/", methods=['POST'])
     def elysium(self):
         data = json.loads(request.data)
 
@@ -247,7 +247,7 @@ class AsupView(FlaskView):
                 200,
                 {'ContentType': 'application/json'})
 
-    @route("select", methods=['POST'])
+    @route("select/", methods=['POST'])
     def select(self):
         """
         Select one or more ASUP files for analysis
@@ -429,7 +429,7 @@ class ReplCtxView(FlaskView):
                 200,
                 {'ContentType': 'application/json'})
 
-    @route('select', methods=['POST'])
+    @route('select/', methods=['POST'])
     def select(self):
         selected_replication_contexts = json.loads(request.data)
         self._set_selected_replication_contexts(selected_replication_contexts)

@@ -77,13 +77,14 @@ class AsupView(FlaskView):
 
         :return: List of strings
         """
-        try:
-            path_list = session['ASUP_FILE_UPLOAD_PATH_LIST']
-        except KeyError:
-            session['ASUP_FILE_UPLOAD_PATH_LIST'] = []
-            path_list = session['ASUP_FILE_UPLOAD_PATH_LIST']
+        path_list = os.listdir(self._get_asup_file_save_path())
+        _log.info("ASUP files uploaded for current session: %s", path_list)
 
         return path_list
+
+    def _delete_available_files(self):
+        _log.info("Deleting all ASUP files at: %s", self._get_asup_file_save_path())
+        shutil.rmtree(self._get_asup_file_save_path(), ignore_errors=True)
 
     @classmethod
     def get_selected_files_path_list(cls):
@@ -160,13 +161,12 @@ class AsupView(FlaskView):
                         500,
                         {'ContentType': 'text/html'})
 
-            self._get_available_files_path_list().append(file_save_path)
             self._set_asup_input_method(self.ASUP_FILE_INPUT_METHODS['FILE_UPLOAD'])
             _log.info('[asup_file_input_method=FILE_UPLOAD] ASUP file saved locally as: %s', file_save_path)
 
         elif request.method == 'DELETE':
             _log.info("Reset uploaded ASUP files")
-            self._get_available_files_path_list().clear()
+            self._delete_available_files()
             self.get_selected_files_path_list().clear()
 
         return (jsonify({}),

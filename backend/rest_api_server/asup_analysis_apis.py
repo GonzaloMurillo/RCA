@@ -408,8 +408,8 @@ class ReplCtxView(FlaskView):
                                 <li>%s: %s</li>\
                                 <li>%s: %s</li>\
                                 </ul>" % (
-                selected_asup_files[0]['filePath'], data_domain[0].serial_number, selected_asup_files[1]['filePath'],
-                data_domain[1].serial_number), 405, {'ContentType': 'text/html'})
+                    os.path.basename(selected_asup_files[0]['filePath']), data_domain[0].serial_number, os.path.basename(selected_asup_files[1]['filePath']),
+                    data_domain[1].serial_number), 405, {'ContentType': 'text/html'})
 
         _log.debug("START of the method to display the contexts of the autosuport that has being uploaded")
         repl_ctx_list = []

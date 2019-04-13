@@ -259,7 +259,7 @@ class AsupView(FlaskView):
 
         for f in selected_asup_files:
             # The GUI doesn't get the full path, so convert it here before saving
-            f['filePath'] = os.path.join(AsupView._get_asup_file_save_path(), f['filePath'])
+            f['filePath'] = os.path.join(self._get_asup_file_save_path(), f['filePath'])
         self._set_selected_files_path_list(selected_asup_files)
 
         _log.info("User '%s' selected %d ASUP files for analysis: %s",

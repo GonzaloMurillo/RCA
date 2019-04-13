@@ -14,7 +14,7 @@ flask_app = None
 flask_server = None
 
 # Port used to serve HTTP requests by Flask - use this in the frontend to make REST API calls
-HTTP_API_PORT = 5000
+HTTP_API_PORT = 8000
 
  # Accept requests on all network interfaces (including the public IP)
 HTTP_API_IP = '0.0.0.0'

@@ -4,7 +4,8 @@ from util import version, logger
 from rest_api_server.dellemc.replicationcontextplot import ReplicationContextPlot
 from rest_api_server.dellemc.pdfhelper import PDFHelper
 # from pdfhelper import PDFHelper
-import os,datetime
+import os
+from datetime import datetime
 _log = logger.get_logger(__name__)
 
 
@@ -67,6 +68,8 @@ class DataDomain():
         self.num_of_replication_contexts=0
         self.hostname=""
         self.serial_number=""
+
+        self.last_used_timestamp = datetime.now()
         return
 
     # Object methods

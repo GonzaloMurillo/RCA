@@ -31,6 +31,20 @@ class AsupView(FlaskView):
         'ELYSIUM_SERIAL_NUMBER': 'ELYSIUM_SERIAL_NUMBER'
         }
 
+    @classmethod
+    def asup_directory_for_user(cls, user):
+        """
+        Get the absolute path to a directory where the specified user's ASUP files
+        are uploaded
+
+        :param user: Email address of the user
+        :return:
+        """
+        path = os.path.abspath(os.path.join(cls.asup_file_save_path_base, user))
+        _log.debug("ASUP files for user '%s' are at: %s", user, path)
+
+        return path
+
     def _get_asup_file_save_path(self):
         """
         Get the ASUP file save path for the current user session
@@ -41,10 +55,11 @@ class AsupView(FlaskView):
             path = session['ASUP_FILE_UPLOAD_PATH']
         except KeyError:
             current_user_email = flask_login.current_user.email
-            path = os.path.abspath(os.path.join(self.asup_file_save_path_base, current_user_email))
-            os.makedirs(path, exist_ok=True)
+            path = self.asup_directory_for_user(current_user_email)
             session['ASUP_FILE_UPLOAD_PATH'] = path
 
+        # Always try to create the dir as the auto-expiry may have deleted it
+        os.makedirs(path, exist_ok=True)
         return path
 
     def _get_available_files_path_list(self):
@@ -260,6 +275,24 @@ class ReplCtxView(FlaskView):
         _log.debug("Get DD object for session '%s'", current_user_email)
         return self.dd_engines[current_user_email]
 
+    @classmethod
+    def get_dd_engine_objects(cls):
+        """
+        Return all available in-memory DD engine objects
+
+        :return: Dict of user_emails:DD_objects
+        """
+        return cls.dd_engines
+
+    @classmethod
+    def remove_dd_engine_object_for_user(cls, user):
+        """
+        Remove the DD engine object for the specified user from memory
+
+        :param user: Email address identifier for the user
+        """
+        cls.dd_engines.pop(user, None)
+
     def _set_selected_replication_contexts(self, list):
         session['REPLICATION_CTX_SELECTED_LIST'] = list
 
@@ -407,57 +440,3 @@ class ReplCtxView(FlaskView):
 
 AsupView.register(app)
 ReplCtxView.register(app)
-
-# Displaying just the source (and valid) replication context from the autosupport
-
-@app.route("/api/asup/analysis/replication_contexts", methods=['GET', 'POST'])
-def replication_contexts_list():
-    global selected_replication_contexts, asup_file_input_method, dd, selected_asup_files
-    # I do convert in global de dd object of class DataDomain
-
-    _log.debug("Method replication_contexts_list")
-    _log.debug(asup_file_input_method)
-
-    # Backend for the upload method
-
-    if(asup_file_input_method==1): #File has been uploaded
-
-        _log.debug(selected_asup_files)
-        number_of_asup_files=len(selected_asup_files)
-        _log.debug("Number of asup files:{}".format(len(selected_asup_files)))
-
-
-
-
-    if request.method == 'GET':
-
-        pass
-
-    # Is this if we click backwards in the browser?
-    elif request.method == 'POST':
-        selected_replication_contexts = json.loads(request.data)
-
-
-        return (jsonify({}),
-                200,
-                {'ContentType': 'application/json'})
-
-# This is where the real analysis of the context happens
-@app.route("/api/asup/analysis/replication_contexts/time_spent", methods=['GET'])
-def analyze_replication_contexts():
-    # Call get_replication_analysis to analyze selected replication contexts
-    _log.debug("Selected contexts for analysis: {}".format(selected_replication_contexts))
-
-    temporal_data_structure=dd.get_replication_analysis(selected_replication_contexts,app)
-
-    if(temporal_data_structure==-1): # This happens if the difference for one context between 2 dates is negative
-
-        return ("<strong>NEGATIVE DELTA DIFFERENCE</strong><br><br>This could happen when the difference in the metrics for one context between two dates is negative.<br><br>If the DDFS has been restarted between the two selected dates, this error is normal because 'Lrepl Client Time Stats' is a cumulative metric that start from 0 whenever the FS is restarted.<br><br>In that case use the 'Single Autosupport Upload' to obtain metrics.<br>Otherwise report a problem sending an e-mail: gonzalo.murillotello@dell.com.", 405, {'ContentType': 'text/html'})
-
-    else:
-
-        final_data_structure=temporal_data_structure
-
-        return (jsonify(final_data_structure),
-                200,
-                {'ContentType': 'application/json'})

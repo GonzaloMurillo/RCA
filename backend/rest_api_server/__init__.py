@@ -50,3 +50,6 @@ import rest_api_server.default_routes
 import rest_api_server.session_mgmt_apis
 import rest_api_server.common_apis
 import rest_api_server.asup_analysis_apis
+
+# Start the session auto-expiry thread
+session_mgmt_apis.start_auto_expire_session_scheduler()

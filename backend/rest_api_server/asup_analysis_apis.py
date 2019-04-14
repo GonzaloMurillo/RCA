@@ -78,7 +78,8 @@ class AsupView(FlaskView):
         :return: List of strings
         """
         path_list = os.listdir(self._get_asup_file_save_path())
-        _log.info("ASUP files uploaded for current session: %s", path_list)
+        path_list = list(map(lambda filename: os.path.join(self._get_asup_file_save_path(), filename), path_list))
+        _log.debug("ASUP files available for current session: %s", path_list)
 
         return path_list
 
@@ -255,6 +256,10 @@ class AsupView(FlaskView):
         :return:
         """
         selected_asup_files = json.loads(request.data)
+
+        for f in selected_asup_files:
+            # The GUI doesn't get the full path, so convert it here before saving
+            f['filePath'] = os.path.join(self._get_asup_file_save_path(), f['filePath'])
         self._set_selected_files_path_list(selected_asup_files)
 
         _log.info("User '%s' selected %d ASUP files for analysis: %s",
@@ -403,8 +408,8 @@ class ReplCtxView(FlaskView):
                                 <li>%s: %s</li>\
                                 <li>%s: %s</li>\
                                 </ul>" % (
-                selected_asup_files[0]['filePath'], data_domain[0].serial_number, selected_asup_files[1]['filePath'],
-                data_domain[1].serial_number), 405, {'ContentType': 'text/html'})
+                    os.path.basename(selected_asup_files[0]['filePath']), data_domain[0].serial_number, os.path.basename(selected_asup_files[1]['filePath']),
+                    data_domain[1].serial_number), 405, {'ContentType': 'text/html'})
 
         _log.debug("START of the method to display the contexts of the autosuport that has being uploaded")
         repl_ctx_list = []

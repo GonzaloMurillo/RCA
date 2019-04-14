@@ -12,9 +12,11 @@ from rest_api_server import app
 import time
 import os
 
+from telemetry.db import VerdictEnum
 from util import logger
 import json
 from rest_api_server.dellemc.datadomain import DataDomain
+from telemetry import db as telemetry
 # from pdfhelper import PDFHelper
 
 _log = logger.get_logger(__name__)
@@ -459,6 +461,13 @@ class ReplCtxView(FlaskView):
         temporal_data_structure = dd.get_replication_analysis(selected_replication_contexts, app)
 
         if (temporal_data_structure == -1):  # This happens if the difference for one context between 2 dates is negative
+            telemetry.track_analysis(flask_login.current_user.email, {
+                'ddos_version': dd.ddos_version,
+                'serialno': dd.serial_number,
+                'replctx': '1',
+                'verdict': VerdictEnum.VERDICT_ERROR,
+                'suggested_fix': 'NEGATIVE DELTA DIFFERENCE'
+            })
 
             return (
             "<strong>NEGATIVE DELTA DIFFERENCE</strong><br><br>This could happen when the difference in the metrics for one context between two dates is negative.<br><br>If the DDFS has been restarted between the two selected dates, this error is normal because 'Lrepl Client Time Stats' is a cumulative metric that start from 0 whenever the FS is restarted.<br><br>In that case use the 'Single Autosupport Upload' to obtain metrics.<br>Otherwise report a problem sending an e-mail: gonzalo.murillotello@dell.com.",
@@ -467,6 +476,24 @@ class ReplCtxView(FlaskView):
         else:
 
             final_data_structure = temporal_data_structure
+
+            # Track telemetry data for each repl ctx in the result
+            for analysis_result in final_data_structure:
+                for suggested_fix in analysis_result['suggestedFix']:
+                    # If there is at least one step in the action items, it means a problem was detected, otherwise everything is OK
+                    # TODO: Maybe return a boolean that says if there is a problem?
+                    if suggested_fix['action_item']['list_of_steps']:
+                        verdict = VerdictEnum.VERDICT_LAG
+                    else:
+                        verdict = VerdictEnum.VERDICT_OK
+
+                    telemetry.track_analysis(flask_login.current_user.email, {
+                        'ddos_version': dd.ddos_version,
+                        'serialno': dd.serial_number,
+                        'replctx': str(analysis_result['ctxDetails']['ctx']),
+                        'verdict': verdict,
+                        'suggested_fix': suggested_fix['action_item']['one_liner']
+                    })
 
             return (jsonify(final_data_structure),
                     200,

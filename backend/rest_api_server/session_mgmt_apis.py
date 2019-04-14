@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 import shutil
 import time
 
+from telemetry import db as telemetry
 from auth.user_auth import DellUser
 from rest_api_server import app, login_manager
 from rest_api_server.asup_analysis_apis import ReplCtxView, AsupView
@@ -53,6 +54,8 @@ def login():
         session['ip'] = request.remote_addr
 
         _log.info("Logged in as user: %s", user)
+
+        telemetry.track_user(user.email, session['ip'], datetime.now())
 
         return (jsonify({}),
                 200,

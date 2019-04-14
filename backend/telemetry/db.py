@@ -20,7 +20,8 @@ DATABASE_FILE_NAME = 'rca_telemetry.sqlite3'
 
 class VerdictEnum(enum.Enum):
     VERDICT_OK = 1
-    VERDICT_LAG = 2
+    VERDICT_ERROR = 2
+    VERDICT_LAG = 3
 
 
 class User(Base):
@@ -84,7 +85,7 @@ def initialize_db(runtime_path):
     :param runtime_path: Absolute path to directory containing the DB file
     """
     db_path = os.path.join(runtime_path, DATABASE_FILE_NAME)
-    _log.info("Initializing telemetry database at: %s", db_path)
+    _log.info("[TELEMETRY] Initializing telemetry database at: %s", db_path)
 
     engine = create_engine('sqlite:///' + db_path, echo=False)
     Base.metadata.create_all(engine)

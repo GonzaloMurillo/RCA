@@ -3,6 +3,9 @@
 
 import os, sys
 import traceback
+
+BOOTSTRAP_DONE = False
+_logger = None
   
 def get_runtime_path():
     ''' If this Python module is being run in the context of a PyInstaller EXE,
@@ -59,13 +62,19 @@ Log file: {}
     
     return preamble
 
+
 # Actual bootstrapping code, executed with this module is imported
 try:
-    import util.logger as logger
-    logger.init_logger(get_runtime_path())
-    _logger = logger.get_logger(__name__)
-    # This will print on the console as well as the log file, so we know when a new execution started
-    _logger.info(get_preamble())
+    if not BOOTSTRAP_DONE:
+        import util.logger as logger
+        logger.init_logger(get_runtime_path())
+        _logger = logger.get_logger(__name__)
+        # This will print on the console as well as the log file, so we know when a new execution started
+        _logger.info(get_preamble())
+        BOOTSTRAP_DONE = True
+    else:
+        _logger.debug("Bootstrap already complete")
 except:
     traceback.print_exc()
     sys.stderr.write('Failed to bootstrap the application.\n')
+

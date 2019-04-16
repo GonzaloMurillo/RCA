@@ -5,8 +5,10 @@ from rest_api_server.dellemc.replicationcontextplot import ReplicationContextPlo
 from rest_api_server.dellemc.pdfhelper import PDFHelper
 # from pdfhelper import PDFHelper
 import os
+import socket
 from datetime import datetime
 _log = logger.get_logger(__name__)
+
 
 
 class DataDomain():
@@ -74,6 +76,25 @@ class DataDomain():
         return
 
     # Object methods
+
+    def delete_asup_file(self):
+        """Deletes the autosupport file once the analysis has been performed.
+
+                Args:
+                none: The autosupport file is already in the object self.current_autosupport_name
+
+                Returns:
+                none:
+
+                """
+        _log.debug("Deleting file {}".format(self.current_autosupport_name))
+
+        try:
+            os.remove(self.current_autosupport_name) # deletion of the autosupport file
+
+        except:
+            _log.debug("The autosupport file that has been tried to be deleted, does not exist.")
+
 
     def use_asup_file(self, filename):
         """Loads an autosupport file into the memory list current_autosupport_content.
@@ -597,7 +618,7 @@ class DataDomain():
         return (-1)
 
 
-    def identify_replication_interface(self,dd_location): # 3 for calculate the interface involved in the replication at source. 4 for calculating the interface involved in the replication at destination
+    def identify_replication_interface(self,dd_location):
         """
         This function searchs in the current_autosupport_context (the Data Domain object list that contains the information loaded from the autosupport file)
         until it finds the netstat information. "Net Show Stats" in the autosupport. In the netstat information, we search for conections to port 2051, to identify the
@@ -605,31 +626,52 @@ class DataDomain():
         If there is more than one interface, we return a string of ips with all the possible interfaces
         :return: An string with all the IPs that can be used for the communication
         """
+
+        # A function to validate if an IP is valid
+        def valid_ip(address):
+            _log.debug("Checking if {} is a valid IP".format(address))
+            try:
+                host_bytes = address.split('.')
+                valid = [int(b) for b in host_bytes]
+                valid = [b for b in valid if b >= 0 and b <= 255]
+                return len(host_bytes) == 4 and len(valid) == 4
+            except:
+                return False
+
+
         x=""
         ips=[] # list with the IPs that are involved in a replication, can have the same IP twice
         string_unique_ips=""
+
         if dd_location=="source":
             _log.debug("I am searching the REPLICATION NIC for source")
-            position=3
+            position=3 # 3 for calculating the interface involved in the replication at source.
         elif dd_location=="destination":
             _log.debug("I am searching the REPLICATION NIC for destination")
-            position=4
+            position=4 #4 for calculating the interface involved in the replication at destination
         else:
             return "???"
 
         for pos,x in enumerate(self.current_autosupport_content):
             if x.strip()=="Net Show Stats":
 
-                _log.debug("Empieza ---- {}".format(self.current_autosupport_content[pos]))
-                while pos<len(self.current_autosupport_content):
+                _log.debug("It does start the Net Show Stats ---- {}".format(self.current_autosupport_content[pos]))
+                while pos<len(self.current_autosupport_content): # We read until the end or until we find "------------" which means that the netstart information has finished
                     if ":2051" in self.current_autosupport_content[pos]: # If it is a netstat line that contains replication information
                         _log.debug("I found a netstat connection to port 2051 {}".format(self.current_autosupport_content[pos]))
+                        _log.debug("The line:{}".format(self.current_autosupport_content[pos]))
+                        _log.debug("Ip puerto antes del split:{}".format(self.current_autosupport_content[pos]))
                         ip_puerto=self.current_autosupport_content[pos].split()
-                        _log.debug("ip puerto:{}".format(ip_puerto[position])) # Is the 4th column of the netstat the one that contains the information of the IP
-                        ip_list=ip_puerto[position].split(":")
-                        if(len(ip_list[0])>4):
-                            _log.debug("Only the IP:{}".format(ip_list[0]))
-                            ips.append(ip_list[0])
+                        _log.debug("ip puerto:{}".format(ip_puerto[position])) # Is the 3rd column of the netstat the one that contains information about source IP and 4th about destination
+                        source_info=str(ip_puerto[position])
+                        list_source_info=source_info.split(":")
+
+                        for a_field_we_need_to_check in list_source_info:
+
+                            if(valid_ip(a_field_we_need_to_check)):
+                                ips.append(a_field_we_need_to_check)
+                                _log.debug("Only the IP:{}".format(a_field_we_need_to_check))
+
 
                     if "----------------" in self.current_autosupport_content[pos]:
                         break # We do this until the end, or until we find "------" as from there, it does not contain more netstat information
@@ -643,7 +685,13 @@ class DataDomain():
                 string_unique_ips=string_unique_ips+" or "
             string_unique_ips=string_unique_ips+str(unique_ip)
             num_ips=num_ips+1
+
+
         _log.debug("Unique replication IPs found:{}".format(string_unique_ips))
+        _log.debug("Number of unique IPs:{}".format(num_ips))
+
+        if(num_ips==0):
+            string_unique_ips = "UNKNOWN"  # There is no information in netstat
 
         return string_unique_ips
 
@@ -809,7 +857,7 @@ class DataDomain():
                         },
                         'action_item': {
                             'one_liner': 'The bottleneck is the destination Data Domain or a network device adding delay to the communication (WAN accelerator, firewall, etc.)',
-                            'list_of_steps': [
+                            'list_of_steps': [  # Empty list if not needed
                                 'Check if the network is dropping a lot of packets or if an intermediate device is adding a lot of latency. We see that from time to time with WAN accelerators.<br>',
                                 'Check if any factor at destination Data Domain can be adding delay to the response time. Particularly check if there is a lack of repl_svc.threads at destination that might be acting as a limiting factor, a faulty or slow disk, or any other variable that can be limiting the performance of the destination Data Domain system and delaying the response to the source significantly.<br>'
 
@@ -1080,7 +1128,7 @@ class DataDomain():
         report_name="./reports/ReplicationReportCtx-"+"15"+".pdf"
         pdf_report.GenerateReport(final_data_structure,15,report_name)
         """
-
-
+        # Deleting the autosupport after the analysis
+        #self.delete_asup_file()
         return(final_data_structure_2)
          # Just as a reference, this is the structure we need to end up having

@@ -1,6 +1,13 @@
+# Python 3 on Ubuntu needs this to run 'setup.py bdist'
+wheel
 Flask
 Flask-Cors
+flask-login
+flask-classy
 PyInstaller
 dis3
+# On Ubuntu, run 'sudo apt-get install python3-tk' first
 matplotlib
-
+fpdf
+gunicorn
+sqlalchemy

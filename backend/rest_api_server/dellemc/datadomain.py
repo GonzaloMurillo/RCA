@@ -4,7 +4,8 @@ from util import version, logger
 from rest_api_server.dellemc.replicationcontextplot import ReplicationContextPlot
 from rest_api_server.dellemc.pdfhelper import PDFHelper
 # from pdfhelper import PDFHelper
-import os,datetime
+import os
+from datetime import datetime
 _log = logger.get_logger(__name__)
 
 
@@ -67,6 +68,9 @@ class DataDomain():
         self.num_of_replication_contexts=0
         self.hostname=""
         self.serial_number=""
+        self.ddos_version=""  # TODO: Parse this from ASUP and store it here for telemetry
+
+        self.last_used_timestamp = datetime.now()
         return
 
     # Object methods
@@ -740,11 +744,11 @@ class DataDomain():
                         'action_item': {
                             'one_liner': 'The bottleneck is the network.',
                             'list_of_steps': [  # Empty list if not needed
-                                '1.- Verify that any throttle set is supposed to be there and with the correct value.<br>',
-                                '2.- Measure with iperf the available bandwidth and check that the result coming from iperf is consistent with the customer expectation from the LAN / WAN. If network bandwidth is less than expected, customer should contact the WAN provider or the team managing the LAN for a health check of the network.<br>',
-                                '3.- Figure out the replication interface being used for the communication and verify that it is the expected interface, and that the speed and duplex mode of that interface is correct. Check for any physical problem on the interface used for the replication like packet drops with frame errors.<br>',
-                                '4.- Gather a network trace with tcpdump from both source and destination Data Domain Systems and analyze if the re transmission ratio is above 0.1%.\nIf it is higher than 0.1%, most likely there is a problem with the underlying communication line that needs to be investigated from the customer side.Check for any other issue on the transport layer using tcptrace.<br>',
-                                '5.- If there is no throttle, and no network issue at the transport layer (like retransmissions, or Zero Window), then the problem is just that the network is not enough to the amount of data being replicated. The customer must increase the network bandwidth if faster replication is required or adjust the replication lag threshold.<br>'
+                                'Verify that any throttle set is supposed to be there and with the correct value.<br>',
+                                'Measure with iperf the available bandwidth and check that the result coming from iperf is consistent with the customer expectation from the LAN / WAN. If network bandwidth is less than expected, customer should contact the WAN provider or the team managing the LAN for a health check of the network.<br>',
+                                'Figure out the replication interface being used for the communication and verify that it is the expected interface, and that the speed and duplex mode of that interface is correct. Check for any physical problem on the interface used for the replication like packet drops with frame errors.<br>',
+                                'Gather a network trace with tcpdump from both source and destination Data Domain Systems and analyze if the re transmission ratio is above 0.1%.\nIf it is higher than 0.1%, most likely there is a problem with the underlying communication line that needs to be investigated from the customer side.Check for any other issue on the transport layer using tcptrace.<br>',
+                                'If there is no throttle, and no network issue at the transport layer (like retransmissions, or Zero Window), then the problem is just that the network is not enough to the amount of data being replicated. The customer must increase the network bandwidth if faster replication is required or adjust the replication lag threshold.<br>'
 
                             ],
                             'footnote': 'Please check the network connection between source and destination Data Domain Systems.' # Blank string if not needed
@@ -772,11 +776,11 @@ class DataDomain():
                         'action_item': {
                             'one_liner': 'The bottleneck is the local reading capabiilty on the source Data Domain.',
                             'list_of_steps': [  # Empty list if not needed
-                                '1.- Measure the local reading of the files that are taking longer to replicate with the dd command.<br>',
-                                '2.- If local reading of the files is OK (around 100 MB/s of performance), then analyze the type of files taking longer to replicate (Exchange Backups, SQL Backups, VMWARE Backups), check also their size, and confirm the feasibility of using AMS (Automatic Multi Stream) and verify in the ddfs logs that AMS is happening.If AMS is not happening when it should, troubleshoot that issue first.<br>',
-                                '3.- If the files taking longer to replicate cannot leverage on AMS, then you must sub split the data of the affected mtree into several new mtrees, and create an mtree replication context for each of them. This is normally the best solution, but be careful as this will require reconfiguration of the backup software that should be performed by customer, so it can involve some extra work.<br>',
-                                '4.- If local reading of the data is not OK (<100 MB/s), it could be that there is a limitation on the Data Domain System itself, like a DD2500 with no extra shelves, slow disks, etc, or that the locality is bad due to aging of the data, excessive cleaning or another factor.You should analyze the locality of the files taking longer to replicate with the command sfs_dump -L file.<br>',
-                                '5.- If the locality of the files is bad, you can repair them with the command sfs_dump -R file, but that is most likely a solution that will work only for the repaired files. Repairing a file takes a great amount of time, so this is a solution to apply just if the customer is in a hurry to replicate one specific file, rather than a generic solution to the issue.<br>'
+                                'Measure the local reading of the files that are taking longer to replicate with the dd command.<br>',
+                                'If local reading of the files is OK (around 100 MB/s of performance), then analyze the type of files taking longer to replicate (Exchange Backups, SQL Backups, VMWARE Backups), check also their size, and confirm the feasibility of using AMS (Automatic Multi Stream) and verify in the ddfs logs that AMS is happening.If AMS is not happening when it should, troubleshoot that issue first.<br>',
+                                'If the files taking longer to replicate cannot leverage on AMS, then you must sub split the data of the affected mtree into several new mtrees, and create an mtree replication context for each of them. This is normally the best solution, but be careful as this will require reconfiguration of the backup software that should be performed by customer, so it can involve some extra work.<br>',
+                                'If local reading of the data is not OK (<100 MB/s), it could be that there is a limitation on the Data Domain System itself, like a DD2500 with no extra shelves, slow disks, etc, or that the locality is bad due to aging of the data, excessive cleaning or another factor.You should analyze the locality of the files taking longer to replicate with the command sfs_dump -L file.<br>',
+                                'If the locality of the files is bad, you can repair them with the command sfs_dump -R file, but that is most likely a solution that will work only for the repaired files. Repairing a file takes a great amount of time, so this is a solution to apply just if the customer is in a hurry to replicate one specific file, rather than a generic solution to the issue.<br>'
 
                             ],
                             'footnote': 'Slow Local Reading is affecting the performance of this replication context'
@@ -805,13 +809,13 @@ class DataDomain():
                         },
                         'action_item': {
                             'one_liner': 'The bottleneck is the destination Data Domain or a network device adding delay to the communication (WAN accelerator, firewall, etc.)',
-                            'list_of_steps': [  # Empty list if not needed
-                                '1.- Check if the network is dropping a lot of packets or if an intermediate device is adding a lot of latency. We see that from time to time with WAN accelerators.<br>',
-                                '2.- Check if any factor at destination Data Domain can be adding delay to the response time. Particularly check if there is a lack of repl_svc.threads at destination that might be acting as a limiting factor, a faulty or slow disk, or any other variable that can be limiting the performance of the destination Data Domain system and delaying the response to the source significantly.<br>'
+                            'list_of_steps': [
+                                'Check if the network is dropping a lot of packets or if an intermediate device is adding a lot of latency. We see that from time to time with WAN accelerators.<br>',
+                                'Check if any factor at destination Data Domain can be adding delay to the response time. Particularly check if there is a lack of repl_svc.threads at destination that might be acting as a limiting factor, a faulty or slow disk, or any other variable that can be limiting the performance of the destination Data Domain system and delaying the response to the source significantly.<br>'
 
                             ],
                             'footnote': 'The recv_refs RPC is a synchronous call.Large time value for this may indicate a network problem resulting in a high effective round-trip time.<br>By “effective” round-trip time, we do not mean the raw network rtt that ping might report. Instead we refer to the actual amount of time for an RPC request to be received, serviced by the replica, and the reply to be received by the source ddr.'
-                            # Blank string if not needed
+
                         },
                         'details': 'The bottleneck of this replication context could be: the network connecting the destination Data Domain with the source Data Domain, an intermediate network device adding delay to the communication, or in general a lack of performance on the destination Data Domain.<br>For detailed information about how to accomplish the steps suggested in the "Actionable items", please check: https://support.emc.com/kb/530882'}
                     # This is a list, so we can have multiple suggested fixes for the same context, if applicable
@@ -834,13 +838,10 @@ class DataDomain():
                             'entity_type': 'NONE'
                         },
                         'action_item': {
-                            'one_liner': 'This context is in balance. There is no clear bottleneck.',
+                            'one_liner': 'This context is in balance. There is no clear bottleneck. It should not have any replication lag.',
                             'list_of_steps': [  # Empty list if not needed
-                                'No actions required.'
-
                             ],
-                            'footnote': 'This context is in balance. It should not have any replication lag.'
-                        # Blank string if not needed
+                            'footnote': '' # Blank string if not needed
                         },
                         'details': 'The replication operations of this replication context are in balance, meaning that the time spent by local reading operations is in balance with the time spent on operations that depend on the network availability.<br>This context should be working properly, as there is no obvious bottleneck that is affecting the replication performance.'}
                     # This is a list, so we can have multiple suggested fixes for the same context, if applicable

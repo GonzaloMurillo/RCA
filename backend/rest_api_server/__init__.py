@@ -5,6 +5,8 @@
 import os, sys
 import traceback
 
+import telemetry
+
 sys.path.append(os.path.abspath(os.path.join(os.curdir, '..')))
 # 3rd party imports
 try:
@@ -53,3 +55,7 @@ import rest_api_server.asup_analysis_apis
 
 # Start the session auto-expiry thread
 session_mgmt_apis.start_auto_expire_session_scheduler()
+
+# Initialize the telemetry DB
+from telemetry import db as telemetry
+telemetry.initialize_db(runtime_path)

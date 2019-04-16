@@ -10,3 +10,4 @@ dis3
 matplotlib
 fpdf
 gunicorn
+sqlalchemy

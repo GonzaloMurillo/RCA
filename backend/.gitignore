@@ -118,3 +118,6 @@ ve/
 
 # ASUP files used during local dev testing
 autosupport*
+
+# Telemetry DB
+rca_telemetry\.sqlite3

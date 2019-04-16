@@ -376,6 +376,7 @@ class DataDomain():
                                 data.append(line.replace(',','').strip().split())  # We store information in a list called data we do not want ','' or spaces
         if(found_start and found_end):
             self.lrepl_client_time_stats=data # now lrepl_client_time_stats contains the information found in the autosupport about lrepl_client_time_stats
+
         else:
             return (-1)
     def __populate_front_end_contexts(self):

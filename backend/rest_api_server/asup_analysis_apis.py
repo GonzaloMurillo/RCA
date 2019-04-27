@@ -149,6 +149,7 @@ class AsupView(FlaskView):
         return method
     
     def _set_input_auto_cores_path(self, auto_cores_path):
+        _log.info("Using INPUT_AUTO_CORES_PATH as '%s' for user '%s'", auto_cores_path, flask_login.current_user.email)
         session['INPUT_AUTO_CORES_PATH'] = auto_cores_path
         
     def _get_input_auto_cores_path(self):
@@ -161,6 +162,15 @@ class AsupView(FlaskView):
         return auto_cores_path
     
     def _walk_dir_for_files(self, path, filter_name):
+        '''
+        List files matching the pattern in the given directory
+        Does not search in sub-dirs
+        
+        :param path: Locally mounted path
+        :param filter_name: File name filter
+        
+        :return: List of files found
+        '''        
         files = []
         try:
             for (dirpath, dirnames, filenames) in os.walk(path):
@@ -175,6 +185,19 @@ class AsupView(FlaskView):
         return files
     
     def _find_asup_files_in_auto_cores(self, path):
+        '''
+        List files in the specified directory and return a list of filenames that start with 'autosupport'
+           - First check in the given path (/auto/cores/xxx)
+           - If no files are found here (or the directory does not exist), then check in (/mnt/sc-cores/xxx)
+           
+        If at least one ASUP file is found in either location, then call self._set_input_auto_cores_path()
+        with the correct path (/auto/cores or /mnt/sc-cores) for the current user session
+           
+        :param path: String in the format '/auto/cores/xxx'
+        
+        :return: List of strings (filenames only, not full paths)
+        '''
+        
         # First look at the Durham /auto/cores
         asup_files_list = self._walk_dir_for_files(path, 'autosupport')
         
@@ -184,7 +207,7 @@ class AsupView(FlaskView):
             asup_files_list = self._walk_dir_for_files(path, 'autosupport')
         
         if asup_files_list:
-            _log.info("%d ASUP files found at '%s', using this as the input path",
+            _log.debug("%d ASUP files found at '%s', using this as the input path",
                       len(asup_files_list), path)
             self._set_input_auto_cores_path(path)
         

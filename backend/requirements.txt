@@ -7,6 +7,7 @@ flask-classy
 PyInstaller
 dis3
 # On Ubuntu, run 'sudo apt-get install python3-tk' first
+# On CentOS, run 'sudo yum install python36u-tkinter' first
 matplotlib
 fpdf
 gunicorn

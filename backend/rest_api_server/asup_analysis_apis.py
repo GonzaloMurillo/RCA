@@ -79,8 +79,15 @@ class AsupView(FlaskView):
 
         :return: List of strings
         """
-        path_list = os.listdir(self._get_asup_file_save_path())
-        path_list = list(map(lambda filename: os.path.join(self._get_asup_file_save_path(), filename), path_list))
+        path_list = []
+        if self._get_asup_input_method() == self.ASUP_FILE_INPUT_METHODS['FILE_UPLOAD']:
+            path_list = os.listdir(self._get_asup_file_save_path())
+            path_list = list(map(lambda filename: os.path.join(self._get_asup_file_save_path(), filename), path_list))
+            
+        elif self._get_asup_input_method() == self.ASUP_FILE_INPUT_METHODS['AUTO_CORES_PATH']:
+            path_list = self._find_asup_files_in_auto_cores(self._get_input_auto_cores_path())
+            path_list = list(map(lambda filename: os.path.join(self._get_input_auto_cores_path(), filename), path_list))
+        
         _log.debug("ASUP files available for current session: %s", path_list)
 
         return path_list
@@ -140,6 +147,71 @@ class AsupView(FlaskView):
             raise
 
         return method
+    
+    def _set_input_auto_cores_path(self, auto_cores_path):
+        _log.info("Using INPUT_AUTO_CORES_PATH as '%s' for user '%s'", auto_cores_path, flask_login.current_user.email)
+        session['INPUT_AUTO_CORES_PATH'] = auto_cores_path
+        
+    def _get_input_auto_cores_path(self):
+        try:
+            auto_cores_path = session['INPUT_AUTO_CORES_PATH']
+        except:
+            _log.exception("Input /auto/cores path not yet set!")
+            raise
+        
+        return auto_cores_path
+    
+    def _walk_dir_for_files(self, path, filter_name):
+        '''
+        List files matching the pattern in the given directory
+        Does not search in sub-dirs
+        
+        :param path: Locally mounted path
+        :param filter_name: File name filter
+        
+        :return: List of files found
+        '''        
+        files = []
+        try:
+            for (dirpath, dirnames, filenames) in os.walk(path):
+                files = [f for f in filenames if filter_name in f]
+                
+                # Do not search sub-dirs
+                break
+        except:
+            _log.exception("Failed to list files in path '%s'", path)
+            pass
+        
+        return files
+    
+    def _find_asup_files_in_auto_cores(self, path):
+        '''
+        List files in the specified directory and return a list of filenames that start with 'autosupport'
+           - First check in the given path (/auto/cores/xxx)
+           - If no files are found here (or the directory does not exist), then check in (/mnt/sc-cores/xxx)
+           
+        If at least one ASUP file is found in either location, then call self._set_input_auto_cores_path()
+        with the correct path (/auto/cores or /mnt/sc-cores) for the current user session
+           
+        :param path: String in the format '/auto/cores/xxx'
+        
+        :return: List of strings (filenames only, not full paths)
+        '''
+        
+        # First look at the Durham /auto/cores
+        asup_files_list = self._walk_dir_for_files(path, 'autosupport')
+        
+        # Then look at the Santa Clara /auto/cores
+        if not asup_files_list:
+            path = path.replace('/auto/cores', '/mnt/sc-cores')
+            asup_files_list = self._walk_dir_for_files(path, 'autosupport')
+        
+        if asup_files_list:
+            _log.debug("%d ASUP files found at '%s', using this as the input path",
+                      len(asup_files_list), path)
+            self._set_input_auto_cores_path(path)
+        
+        return asup_files_list
 
     @route("upload/", methods=['POST', 'DELETE'])
     def upload(self):
@@ -181,10 +253,18 @@ class AsupView(FlaskView):
         data = json.loads(request.data)
 
         asup_auto_cores_location = data['auto_cores_path']
-
-        # TODO: Walk the /auto/cores directory (assume local NFS mount) and get a list of
-        #       all ASUP files in it, then populate the list
-        self._get_available_files_path_list().extend([])
+        
+        asup_files_list = self._find_asup_files_in_auto_cores(asup_auto_cores_location)
+        
+        if not asup_files_list:
+            _log.error("Did not find any ASUP files at '%s' for '%s'",
+                       asup_auto_cores_location, flask_login.current_user.email)
+            return ("No ASUP files found at <strong>'%s'</strong>, please check the path and try again.<br>"\
+                    "Both Durham and Santa Clara /auto/cores mounts are checked." % (asup_auto_cores_location),
+                    405,
+                    {'ContentType': 'text/html'}
+                    )
+        
         self._set_asup_input_method(self.ASUP_FILE_INPUT_METHODS['AUTO_CORES_PATH'])
         _log.info('[asup_file_input_method=AUTO_CORES_PATH] ASUP file(s) located at: %s', asup_auto_cores_location)
 
@@ -261,7 +341,11 @@ class AsupView(FlaskView):
 
         for f in selected_asup_files:
             # The GUI doesn't get the full path, so convert it here before saving
-            f['filePath'] = os.path.join(self._get_asup_file_save_path(), f['filePath'])
+            if self._get_asup_input_method() == self.ASUP_FILE_INPUT_METHODS['FILE_UPLOAD']:
+                f['filePath'] = os.path.join(self._get_asup_file_save_path(), f['filePath'])
+            elif self._get_asup_input_method() == self.ASUP_FILE_INPUT_METHODS['AUTO_CORES_PATH']:
+                f['filePath'] = os.path.join(self._get_input_auto_cores_path(), f['filePath'])
+            
         self._set_selected_files_path_list(selected_asup_files)
 
         _log.info("User '%s' selected %d ASUP files for analysis: %s",

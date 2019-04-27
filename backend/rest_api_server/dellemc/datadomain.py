@@ -2,9 +2,13 @@
 # coding=utf-8
 from util import version, logger
 from rest_api_server.dellemc.replicationcontextplot import ReplicationContextPlot
+from rest_api_server.dellemc.pdfhelper import PDFHelper
 # from pdfhelper import PDFHelper
 import os
+import socket
+from datetime import datetime
 _log = logger.get_logger(__name__)
+
 
 
 class DataDomain():
@@ -60,14 +64,37 @@ class DataDomain():
         self.current_autosupport_name=""
         self.current_autosupport_content=[]
         self.lrepl_client_time_stats=[]
+        self.lrepl_client_time_stats_delta_difference=[]
         self.replication_contexts=[]
         self.replication_contexts_frontend=[]
         self.num_of_replication_contexts=0
         self.hostname=""
         self.serial_number=""
+        self.ddos_version=""  # TODO: Parse this from ASUP and store it here for telemetry
+
+        self.last_used_timestamp = datetime.now()
         return
 
     # Object methods
+
+    def delete_asup_file(self):
+        """Deletes the autosupport file once the analysis has been performed.
+
+                Args:
+                none: The autosupport file is already in the object self.current_autosupport_name
+
+                Returns:
+                none:
+
+                """
+        _log.debug("Deleting file {}".format(self.current_autosupport_name))
+
+        try:
+            os.remove(self.current_autosupport_name) # deletion of the autosupport file
+
+        except:
+            _log.debug("The autosupport file that has been tried to be deleted, does not exist.")
+
 
     def use_asup_file(self, filename):
         """Loads an autosupport file into the memory list current_autosupport_content.
@@ -80,7 +107,7 @@ class DataDomain():
 
         """
         self.current_autosupport_name=filename # A DataDomain object is build from an autosupport
-        with open (self.current_autosupport_name) as autosupport_fd:
+        with open (self.current_autosupport_name,'r') as autosupport_fd:
 
             # We read the autosupport file and put it in memory, class variable member current_autosupport_content
             self.current_autosupport_content=autosupport_fd.read().splitlines() # splitlines removes the \n from each line. We have now in self.current_autosupport_content the full autosupport
@@ -358,11 +385,11 @@ class DataDomain():
         # We are searching for the information about the contexts, and that is stored in the autosupport
         # between the delimiters 'Lrepl client time stats' and 'Lrepl client stream stats'
         # those delimiters can be changing with DD OS Version, be aware!
-
-        with open (self.current_autosupport_name) as autosupport_file:
+        _log.warning("The name of the autosupport file for calculating lrepl_client_time_stats:{}".format(self.current_autosupport_name))
+        with open (self.current_autosupport_name,'r') as autosupport_file:
             for line in autosupport_file:
                 if start_delimiter in line:  # We found the start_delimiter, now we search until the start of the Lrepl client time stats
-                    
+
                     found_start = True
                     for line in autosupport_file:  # And once we find it, we read until the end of the relevant information (
                         if end_delimiter in line:  # We exit here as we have all the information we need
@@ -374,6 +401,7 @@ class DataDomain():
                                 data.append(line.replace(',','').strip().split())  # We store information in a list called data we do not want ','' or spaces
         if(found_start and found_end):
             self.lrepl_client_time_stats=data # now lrepl_client_time_stats contains the information found in the autosupport about lrepl_client_time_stats
+
         else:
             return (-1)
     def __populate_front_end_contexts(self):
@@ -423,9 +451,146 @@ class DataDomain():
         if self.serial_number:
             return self.serial_number
 
-    # function give_me_position_in_header_of
-    # We use this function beause some times the order in the columns that represent lrepl client time stats, change
-    # from DD OS version to DD OS version, so we cannot rely on a fixed position. This function returns dinamically the position.
+    def get_generated_on(self):
+        """Returns the GENERATED_ON date contained in the autosupport
+            Args:
+            none: It takes the filename from the self.current_autosupport_name
+            Returns:
+            generated_on_date:string
+
+            An string with the serial obtained from the autosupport
+
+        """
+        for autosupport_read_line in self.current_autosupport_content: # We read from all the autosupport list
+            if(len(autosupport_read_line)!=0): # If the line is empty we discard it
+
+                if "GENERATED_ON=" in autosupport_read_line:
+
+                    splitted_generated=autosupport_read_line.split("=") # We get just the date and not the string GENERATED_ON
+                    date_time_str_splitted=splitted_generated[1].split() # We split the part that is the date, because we do not want time zone (simplification) is really weird if they change timezone from one autosupport to the other
+                    date_time_str_aux=date_time_str_splitted[0]+" "+date_time_str_splitted[1]+" "+date_time_str_splitted[2]+" "+date_time_str_splitted[5]+" "+date_time_str_splitted[3] # We build something that can be understood by the frontend
+                    _log.debug("GENERATED DATE FOUND {}".format(date_time_str_aux))
+                    return date_time_str_aux
+
+
+    def calculate_delta_difference(self,dd_older):
+
+        """Computes the delta difference between the replication contexts of two DataDomains (autosupports)
+            Args:
+            dd_older: DD object created from the autosupport that is older and needs to be substracted to the newer for calculating the delta difference
+            Returns:
+            nothing, but it updates the self.lrepl_client_time_stats_delta_difference with a list of lrepl_client_time_stats_delta
+
+            """
+
+
+        def find_context_in_older(which_context,dd_older):
+
+
+            """Returns the lrepl_client_time_stats found in the Data Domain object dd_older for the parameter which_context
+                Args:
+                which_context: string | An string like rctx://1 representing the context we want to found
+
+                Returns:
+                dd_older.lrepl_client_time_stats[]:list
+                It does return a list with the lrepl_client_time_stats for the specified parameter "which_context" or -1 if not found
+
+
+            """
+            _log.debug("Method calculate_delta_difference:find_context_in_older")
+            _log.debug("Displaying dd_older.lrepl_client_time_stats {}".format(dd_older.lrepl_client_time_stats))
+            #_log.debug("We are trying to find {} in dd_older.lrepl_client_time_stats {}".format(which_context),dd_older.lrepl_client_time_stats)
+
+
+            for iterator in range (1,len(dd_older.lrepl_client_time_stats)):
+
+                for reiterator in dd_older.lrepl_client_time_stats[iterator]:
+
+                    if "rctx" in reiterator: # We do not want to search in fields containing numeric values
+                        _log.debug("Method calculate_delta_difference:find_context_in_older. Comparing {} with {}".format(which_context,reiterator))
+                        if reiterator==which_context:
+                            _log.debug("We found the context that we were searching for {}, we are going to return the lrepl_client_time_stats {}".format(which_context,dd_older.lrepl_client_time_stats[iterator]))
+                            return dd_older.lrepl_client_time_stats[iterator]
+
+            return -1 # If we arrive here is that the information of the context is not found
+
+
+        def substract(context_newer,context_older,the_context):
+
+            """Substracts from the list context_newer (that represents the lrepl_client_time_stats of a context) the context_older (that represents the lrep_client_time_stats in an older autosupport) for the specified context "the_context"
+                Args:
+                context_newer: list | A list containint lrepl_client_time_stats of a context in the newer autosupport
+                context_older: list | A list containint lrepl_client_time_stats of a context in the older autosupport
+                the_context: list | A list with the header information of the context
+
+                Returns:
+                context_substracted:list
+                A list that is the delta difference of the specified context, meaning that each field is the difference between the information that is present in the newer autosupport - the information that was present in the older autosupport
+
+
+            """
+            context_substracted=[]
+            context_substracted.append(the_context)
+            _log.debug("Method calculate_delta_difference:substract")
+            _log.debug("We are going to calculate the difference between {} and {}".format(context_newer,context_older))
+            for it in range(1,len(context_newer)):
+                context_substracted.append(int(context_newer[it])-int(context_older[it])) # We substract every field)
+
+            _log.debug("Method calculate_delta_difference:substract")
+            _log.debug("What we are returning from the substract operation:{}".format(context_substracted))
+            return(context_substracted)
+
+
+        _log.debug("Method calculate_delta_difference:We enter the method to calculate the delta difference")
+        _log.debug("Method calculate_delta_difference:Newer Lrepl client time stats")
+        print(self.lrepl_client_time_stats)
+        _log.debug("Method calculate_delta_difference:Older Lrepl client time stats")
+        print(dd_older.lrepl_client_time_stats)
+
+        if len(self.lrepl_client_time_stats[0])==len(dd_older.lrepl_client_time_stats[0]): # We are good to go as both autosupport have the same number of lprel_client_time_stats_columns (field 0 is the header)
+            _log.debug("Method calculate_delta_difference: The two autosupport have the same number of columns in lrepl_client_time_stats")
+
+            # We first add the header to have a consistent way to calculate things when only one autosupport is selected or multiple autosupports are selected
+            self.lrepl_client_time_stats_delta_difference.append(self.lrepl_client_time_stats[0])
+
+
+            # We just calculate delta difference for the same contexts, we do not asume that if a context is present in one autosupport and in the other, is not the same
+            for i in range (1,len(self.lrepl_client_time_stats)): # each i starting in 1, is information of a context. 0 is the headers
+                for j in self.lrepl_client_time_stats[i]:
+                    if "rctx:" in j: # We need to search that context in the dd_older.lrepl_client_time_stats
+                        list_with_lrepl_client_time_stats_context_in_older_asup=find_context_in_older(j,dd_older) # The contexts has being found
+                        _log.debug("Method calculate_delta_difference:What has been returned by find_context_in_older {}".format(list_with_lrepl_client_time_stats_context_in_older_asup))
+                        if list_with_lrepl_client_time_stats_context_in_older_asup!=-1:
+                             resultado=[]
+                             resultado=substract(self.lrepl_client_time_stats[i],list_with_lrepl_client_time_stats_context_in_older_asup,j)
+                             _log.debug("Resultado:{}".format(resultado))
+                             self.lrepl_client_time_stats_delta_difference.append(resultado)
+        _log.debug("The lrepl_client_time_stats_delta_difference {}".format(self.lrepl_client_time_stats_delta_difference))
+
+
+    def return_lrepl_client_time_stats_delta(self):
+
+        """Returns the lrepl_client_time_stats_delta
+            Args:
+                none
+            Returns:
+                Returns the lrepl_client_time_stats_delta of the DataDomain object that calls it
+        """
+        return self.lrepl_client_time_stats_delta_difference
+
+
+    def make_lrepl_client_time_stats_equal_to_delta_time_stats(self):
+
+        """Makes the lrepl_client_time_stats list of an object equal to his lrepl_client_time_stats_delta
+           This is required if we are computing a delta difference, just we can use the same methods that we use when just one autosupport is uploaded.
+            Args:
+                none
+            Returns:
+                none
+        """
+        del self.lrepl_client_time_stats
+        self.lrepl_client_time_stats=self.lrepl_client_time_stats_delta_difference
+
 
     def give_me_position_in_header_of(self,column_name):
         """We use this function beause some times the order in the columns that represent lrepl client time stats, change
@@ -452,6 +617,295 @@ class DataDomain():
         # If we have arrived here is that we have not found that column_name
         return (-1)
 
+
+    def identify_replication_interface(self,dd_location):
+        """
+        This function searchs in the current_autosupport_context (the Data Domain object list that contains the information loaded from the autosupport file)
+        until it finds the netstat information. "Net Show Stats" in the autosupport. In the netstat information, we search for conections to port 2051, to identify the
+        interface being used for the replication. Please note that can be more than one interface (if there are replication contexts that use different interface for the communication)
+        If there is more than one interface, we return a string of ips with all the possible interfaces
+        :return: An string with all the IPs that can be used for the communication
+        """
+
+        # A function to validate if an IP is valid
+        def valid_ip(address):
+            _log.debug("Checking if {} is a valid IP".format(address))
+            try:
+                host_bytes = address.split('.')
+                valid = [int(b) for b in host_bytes]
+                valid = [b for b in valid if b >= 0 and b <= 255]
+                return len(host_bytes) == 4 and len(valid) == 4
+            except:
+                return False
+
+
+        x=""
+        ips=[] # list with the IPs that are involved in a replication, can have the same IP twice
+        string_unique_ips=""
+
+        if dd_location=="source":
+            _log.debug("I am searching the REPLICATION NIC for source")
+            position=3 # 3 for calculating the interface involved in the replication at source.
+        elif dd_location=="destination":
+            _log.debug("I am searching the REPLICATION NIC for destination")
+            position=4 #4 for calculating the interface involved in the replication at destination
+        else:
+            return "???"
+
+        for pos,x in enumerate(self.current_autosupport_content):
+            if x.strip()=="Net Show Stats":
+
+                _log.debug("It does start the Net Show Stats ---- {}".format(self.current_autosupport_content[pos]))
+                while pos<len(self.current_autosupport_content): # We read until the end or until we find "------------" which means that the netstart information has finished
+                    if ":2051" in self.current_autosupport_content[pos]: # If it is a netstat line that contains replication information
+                        _log.debug("I found a netstat connection to port 2051 {}".format(self.current_autosupport_content[pos]))
+                        _log.debug("The line:{}".format(self.current_autosupport_content[pos]))
+                        _log.debug("Ip puerto antes del split:{}".format(self.current_autosupport_content[pos]))
+                        ip_puerto=self.current_autosupport_content[pos].split()
+                        _log.debug("ip puerto:{}".format(ip_puerto[position])) # Is the 3rd column of the netstat the one that contains information about source IP and 4th about destination
+                        source_info=str(ip_puerto[position])
+                        list_source_info=source_info.split(":")
+
+                        for a_field_we_need_to_check in list_source_info:
+
+                            if(valid_ip(a_field_we_need_to_check)):
+                                ips.append(a_field_we_need_to_check)
+                                _log.debug("Only the IP:{}".format(a_field_we_need_to_check))
+
+
+                    if "----------------" in self.current_autosupport_content[pos]:
+                        break # We do this until the end, or until we find "------" as from there, it does not contain more netstat information
+
+                    pos=pos+1
+        _log.debug("List of IPs involved in replication with duplicated{}".format(ips))
+        unique_ips_set = set(ips) # We make a ser for obtaining just unique IPs
+        num_ips=0
+        for unique_ip in unique_ips_set:
+            if num_ips!=0:
+                string_unique_ips=string_unique_ips+" or "
+            string_unique_ips=string_unique_ips+str(unique_ip)
+            num_ips=num_ips+1
+
+
+        _log.debug("Unique replication IPs found:{}".format(string_unique_ips))
+        _log.debug("Number of unique IPs:{}".format(num_ips))
+
+        if(num_ips==0):
+            string_unique_ips = "UNKNOWN"  # There is no information in netstat
+
+        return string_unique_ips
+
+
+    def calculate_actionable(self,frontend_structe):
+        """
+        This function adds to the list of dictionaries that the frontend understands, the actionable items
+        displayed in the report, together with the detailed information.
+        In other words, is the function that builds the report part that mention what actions need to be taken
+        to resolve the issue and what is the issue.
+        :param frontendstructe:
+        :return: frontend_with_actionable
+
+        """
+        # We need to iterate the list frontend_structure, where each index represents a context, and search
+        # for the metrics
+        sending_source=[] # A list that will contain all the values of sending over the network (send_refs,send_segs,recv_refs,get_reft
+        sending_destination=[]
+        reading_local_fs=[] # A list that will contain all the FS local reading metrics (read_segs, read_bases)
+        entity_name=""
+        _log.debug("Calculate actionables")
+        for ctx_num,ctx_dic in enumerate(frontend_structe):
+            for j in frontend_structe[ctx_num]['ctxUsageTime']:
+
+                # Keys related with time spent over the network due to source
+
+                if j['key']== 'Time sending references':
+
+                    sending_source.append(j['value'])
+
+                if j['key']=='Time sending segments':
+
+                    sending_source.append(j['value'])
+
+                if j['key'] == "Time sending small files":
+
+                    sending_source.append(j['value'])
+
+                if j['key'] == "Time sending sketches":
+
+                    sending_source.append(j['value'])
+
+                    # Keys related with time spent over the network due to destination
+
+                if j['key'] == 'Time receiving references':
+
+                    sending_destination.append(j['value'])
+
+                if j['key'] == 'Time waiting for references from destination':
+
+                    sending_destination.append(j['value'])
+
+                if j['key'] == "Time waiting getting references":
+
+                    sending_destination.append(j['value'])
+
+                if j['key'] == "Time receiving bases":
+
+                    sending_destination.append(j['value'])
+
+                if j['key'] == "Time getting chunk info":
+
+                    sending_destination.append(j['value'])
+
+                # Keys related with local file system
+
+                if j['key'] == "Time local reading segments":
+
+                    reading_local_fs.append(j['value'])
+
+                if j['key'] == "Time reading bases":
+
+                    reading_local_fs.append(j['value'])
+
+                if j['key'] == "Time unpacking chunks of info":
+
+                    reading_local_fs.append(j['value'])
+
+                _log.debug("ctxUsageTime for selected ctx in position %d is %s", ctx_num, j)
+            _log.debug("Spent over the network due to source:{}, due to destination {}, due to local fs: {}".format(sum(sending_source),sum(sending_destination),sum(reading_local_fs)))
+            entity_name = frontend_structe[ctx_num]['ctxDetails']['source']['host']
+            if(sum(sending_source)>70): # Bottleneck is the network
+
+                # Method to calculate the NIC interface being used for the replication self.identify_replication_interface()
+
+                replication_interface_source=self.identify_replication_interface("source")
+                frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface_source
+
+                replication_interface_destination = self.identify_replication_interface("destination")
+                frontend_structe[ctx_num]['ctxDetails']['destination']['eth_interface']=replication_interface_destination
+
+                frontend_structe[ctx_num]['suggestedFix'] = [
+                    {
+                        'problem_on': {
+                            'entity_name': entity_name,
+                            'entity_type': 'NETWORK'
+                        },
+                        'action_item': {
+                            'one_liner': 'The bottleneck is the network.',
+                            'list_of_steps': [  # Empty list if not needed
+                                'Verify that any throttle set is supposed to be there and with the correct value.<br>',
+                                'Measure with iperf the available bandwidth and check that the result coming from iperf is consistent with the customer expectation from the LAN / WAN. If network bandwidth is less than expected, customer should contact the WAN provider or the team managing the LAN for a health check of the network.<br>',
+                                'Figure out the replication interface being used for the communication and verify that it is the expected interface, and that the speed and duplex mode of that interface is correct. Check for any physical problem on the interface used for the replication like packet drops with frame errors.<br>',
+                                'Gather a network trace with tcpdump from both source and destination Data Domain Systems and analyze if the re transmission ratio is above 0.1%.\nIf it is higher than 0.1%, most likely there is a problem with the underlying communication line that needs to be investigated from the customer side.Check for any other issue on the transport layer using tcptrace.<br>',
+                                'If there is no throttle, and no network issue at the transport layer (like retransmissions, or Zero Window), then the problem is just that the network is not enough to the amount of data being replicated. The customer must increase the network bandwidth if faster replication is required or adjust the replication lag threshold.<br>'
+
+                            ],
+                            'footnote': 'Please check the network connection between source and destination Data Domain Systems.' # Blank string if not needed
+                        },
+                        'details': 'The bottleneck of this replication context seems to be the available network bandwidth.<br>It simply seems that the bandwidth available is not enough for the amount of data being transferred over the line, and hence most of the time the replication context is waiting for the network to become discontented and available.<br>For detailed information about how to accomplish the steps suggested in the "Actionable items", please check: https://support.emc.com/kb/530882' }
+                    # This is a list, so we can have multiple suggested fixes for the same context, if applicable
+                ]
+            elif (sum(reading_local_fs)>70):
+
+                # Method to calculate the NIC interface being used for the replication self.identify_replication_interface()
+
+
+                replication_interface_source=self.identify_replication_interface("source")
+                frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface_source
+
+                replication_interface_destination = self.identify_replication_interface("destination")
+                frontend_structe[ctx_num]['ctxDetails']['destination']['eth_interface']=replication_interface_destination
+
+                frontend_structe[ctx_num]['suggestedFix'] = [
+                    {
+                        'problem_on': {
+                            'entity_name': entity_name,
+                            'entity_type': 'LOCAL FILE SYSTEM'
+                        },
+                        'action_item': {
+                            'one_liner': 'The bottleneck is the local reading capabiilty on the source Data Domain.',
+                            'list_of_steps': [  # Empty list if not needed
+                                'Measure the local reading of the files that are taking longer to replicate with the dd command.<br>',
+                                'If local reading of the files is OK (around 100 MB/s of performance), then analyze the type of files taking longer to replicate (Exchange Backups, SQL Backups, VMWARE Backups), check also their size, and confirm the feasibility of using AMS (Automatic Multi Stream) and verify in the ddfs logs that AMS is happening.If AMS is not happening when it should, troubleshoot that issue first.<br>',
+                                'If the files taking longer to replicate cannot leverage on AMS, then you must sub split the data of the affected mtree into several new mtrees, and create an mtree replication context for each of them. This is normally the best solution, but be careful as this will require reconfiguration of the backup software that should be performed by customer, so it can involve some extra work.<br>',
+                                'If local reading of the data is not OK (<100 MB/s), it could be that there is a limitation on the Data Domain System itself, like a DD2500 with no extra shelves, slow disks, etc, or that the locality is bad due to aging of the data, excessive cleaning or another factor.You should analyze the locality of the files taking longer to replicate with the command sfs_dump -L file.<br>',
+                                'If the locality of the files is bad, you can repair them with the command sfs_dump -R file, but that is most likely a solution that will work only for the repaired files. Repairing a file takes a great amount of time, so this is a solution to apply just if the customer is in a hurry to replicate one specific file, rather than a generic solution to the issue.<br>'
+
+                            ],
+                            'footnote': 'Slow Local Reading is affecting the performance of this replication context'
+                        # Blank string if not needed
+                        },
+                        'details': 'The bottleneck of this replication context seems to be the local reading capability.<br>What does it means that the "local reading" is the bottleneck? For your understanding: we need to "local read" the data at source, split it in chunks, and create fingerprints (a mathematical hash of every chunk). Once we have the fingerprint, we ask the destination Data Domain System if there is already a fingerprint matching at destination. If there is one already, it means that the data has being already transmitted and we do not send the data over the network again, we just increase the number of references that point to it. That way we save on traffic over the network.But what happens if local reading that data is slow and why it happens? There are several factors why local reading can be slow, being the most common that everything that needs to be replicated has been put by the customer inside just one mtree, and therefore only one mtree replication context is taking care of the replication. In that case we are limited by the max number of replication streams (normally 64), and we need to sub split the data and create further replication contexts.But before sub splitting the mtree, there are other points to check as described in the "Actionable Items section". For detailed information about how to accomplish the steps suggested in the "Actionable items", please check: https://support.emc.com/kb/530882'}
+                    # This is a list, so we can have multiple suggested fixes for the same context, if applicable
+                ]
+            elif (sum(sending_destination)>70):
+
+                # Method to calculate the NIC interface being used for the replication self.identify_replication_interface()
+
+
+                replication_interface_source=self.identify_replication_interface("source")
+                frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface_source
+
+                replication_interface_destination = self.identify_replication_interface("destination")
+                frontend_structe[ctx_num]['ctxDetails']['destination']['eth_interface']=replication_interface_destination
+
+                entity_name = frontend_structe[ctx_num]['ctxDetails']['destination']['host']
+                frontend_structe[ctx_num]['suggestedFix'] = [
+                    {
+                        'problem_on': {
+                            'entity_name': entity_name,
+                            'entity_type': 'DESTINATION DATA DOMAIN'
+                        },
+                        'action_item': {
+                            'one_liner': 'The bottleneck is the destination Data Domain or a network device adding delay to the communication (WAN accelerator, firewall, etc.)',
+                            'list_of_steps': [  # Empty list if not needed
+                                'Check if the network is dropping a lot of packets or if an intermediate device is adding a lot of latency. We see that from time to time with WAN accelerators.<br>',
+                                'Check if any factor at destination Data Domain can be adding delay to the response time. Particularly check if there is a lack of repl_svc.threads at destination that might be acting as a limiting factor, a faulty or slow disk, or any other variable that can be limiting the performance of the destination Data Domain system and delaying the response to the source significantly.<br>'
+
+                            ],
+                            'footnote': 'The recv_refs RPC is a synchronous call.Large time value for this may indicate a network problem resulting in a high effective round-trip time.<br>By “effective” round-trip time, we do not mean the raw network rtt that ping might report. Instead we refer to the actual amount of time for an RPC request to be received, serviced by the replica, and the reply to be received by the source ddr.'
+
+                        },
+                        'details': 'The bottleneck of this replication context could be: the network connecting the destination Data Domain with the source Data Domain, an intermediate network device adding delay to the communication, or in general a lack of performance on the destination Data Domain.<br>For detailed information about how to accomplish the steps suggested in the "Actionable items", please check: https://support.emc.com/kb/530882'}
+                    # This is a list, so we can have multiple suggested fixes for the same context, if applicable
+                ]
+            else:
+
+                # Method to calculate the NIC interface being used for the replication self.identify_replication_interface()
+
+
+                replication_interface_source=self.identify_replication_interface("source")
+                frontend_structe[ctx_num]['ctxDetails']['source']['eth_interface'] = replication_interface_source
+
+                replication_interface_destination = self.identify_replication_interface("destination")
+                frontend_structe[ctx_num]['ctxDetails']['destination']['eth_interface']=replication_interface_destination
+
+                frontend_structe[ctx_num]['suggestedFix'] = [
+                    {
+                        'problem_on': {
+                            'entity_name': entity_name,
+                            'entity_type': 'NONE'
+                        },
+                        'action_item': {
+                            'one_liner': 'This context is in balance. There is no clear bottleneck. It should not have any replication lag.',
+                            'list_of_steps': [  # Empty list if not needed
+                            ],
+                            'footnote': '' # Blank string if not needed
+                        },
+                        'details': 'The replication operations of this replication context are in balance, meaning that the time spent by local reading operations is in balance with the time spent on operations that depend on the network availability.<br>This context should be working properly, as there is no obvious bottleneck that is affecting the replication performance.'}
+                    # This is a list, so we can have multiple suggested fixes for the same context, if applicable
+                ]
+            # For every context, we initialize
+
+
+            sending_source=[]
+            sending_destination=[]
+            reading_local_fs=[]
+
+
+
+
+
+        return frontend_structe
 
     def get_replication_analysis(self,selected_replication_contexts,app):
 
@@ -486,8 +940,9 @@ class DataDomain():
              # Now we need to obtain the lrepl_client_time_stats for the context that we are analyzing. That info is already in the DataDomain object because the constructor does
              for i in range(1,len(self.lrepl_client_time_stats)): # We start in 1, because dd,lrepl_client_time_stats[0], just contains the header
                  searching_for="rctx://"+str(itera_dict['ctx'])
+                 _log.debug("Method: get_replication_analisys")
                  _log.debug("We are searching the Lrepl client time stats of context:{}".format(searching_for))
-
+                 _log.debug("The lrepl_client_time_stats that we have: {}".format(self.lrepl_client_time_stats[i]))
                  if(self.lrepl_client_time_stats[i][0]==searching_for): # We are searching for on one of the specific contexts selected for analysis
                      _log.debug("We have foud the lrepl_client_time_stats of the context {}".format(searching_for))
                      # We found it, so we make the aux_lrepl_client_time_stats equal to the list that corresponds in the dd object
@@ -504,6 +959,10 @@ class DataDomain():
 
              _log.debug("The total time spent by context {} is {} as calculated by adding together all the values".format(searching_for,sum))
              total_computed_time=sum
+
+             if total_computed_time<0: # Delta difference computes negative
+                 return(-1)
+
 
              if total_computed_time==0: # We cannot calculate anything if the time of all the metrics is 0, this context has no info
                total_computed_time=0.0001 # to ovoid division by zero, but we have to decide what to do with this repliation context (no displaying them or greyed out)
@@ -610,6 +1069,9 @@ class DataDomain():
               # TO DO We will have to create the graph here from the info contained in list_ctx_usage_time
               # We build the graph here
 
+             """ This was the old method to generate a graph from the backend
+                 Omkar came with something better done at the front-end, so I disable it 
+                 but leave here just in case it is needed sometime
              graph=ReplicationContextPlot()
 
              save_name_path=app.config['STATIC_DIR_PATH']
@@ -628,37 +1090,45 @@ class DataDomain():
              dic_auxiliar_2={'graphImage': save_name}
 
              dic_auxiliar.update(dic_auxiliar_2)
-             """
+             
              # This is how it was originally pointing to a resource under frontend src
              #dic_auxiliar_2={'graphImage': 'assets/ctxgraph93808.png'}
              #dic_auxiliar.update(dic_auxiliar_2)
-             """
+             
 
              # END OF THE GRAPH, we keep adding what is remaining
+             """
              dic_auxiliar.update(dic_ctx_usage_time) # Method update of the dictionary dict.update(dict2) what it does it do add dict2´s key-values pair in to dict (like removing one nexted dictionary)
              dic_auxiliar['ctxUsageTime']=list_ctx_usage_time # And now we add the key 'ctxUsageTime'
              final_data_structure.append(dic_auxiliar) # And we add to the list resultado, which is the final data structure being processed
 
 
-             _log.debug("THE FINAL DATA STRUCTURE BUILD AFTER CONTEXT ANALYSIS IS:{}".format(final_data_structure))
-             _log.debug("WE HAVE FINISHED THE ANALYSIS OF %d REPLICATION CONTEXTS",len(final_data_structure))
+        # logic to compute suggested fix
+        _log.debug("Length of the list final_data_structure:{}".format(len(final_data_structure)))
+        final_data_structure_2=self.calculate_actionable(final_data_structure)
+        _log.debug("THE FINAL DATA STRUCTURE BUILD AFTER CONTEXT ANALYSIS IS:{}".format(final_data_structure))
+        _log.debug("WE HAVE FINISHED THE ANALYSIS OF %d REPLICATION CONTEXTS", len(final_data_structure))
 
+        # lets generate a PDF Report, if we want
 
+        """pdf_report=PDFHelper()
+        report_name="./reports/ReplicationReportCtx-"+"2"+".pdf"
+        pdf_report.GenerateReport(final_data_structure,2,report_name)
 
-
-
-         # lets generate a PDF Report
+        report_name="./reports/ReplicationReportCtx-"+"4"+".pdf"
+        pdf_report.GenerateReport(final_data_structure,4,report_name)
+        report_name="./reports/ReplicationReportCtx-"+"6"+".pdf"
+        pdf_report.GenerateReport(final_data_structure,6,report_name)
+        report_name="./reports/ReplicationReportCtx-"+"8"+".pdf"
+        pdf_report.GenerateReport(final_data_structure,8,report_name)
+        report_name="./reports/ReplicationReportCtx-"+"9"+".pdf"
+        pdf_report.GenerateReport(final_data_structure,9,report_name)
+        report_name="./reports/ReplicationReportCtx-"+"15"+".pdf"
+        pdf_report.GenerateReport(final_data_structure,15,report_name)
+        report_name="./reports/ReplicationReportCtx-"+"15"+".pdf"
+        pdf_report.GenerateReport(final_data_structure,15,report_name)
         """
-         pdf_report=PDFHelper()
-         report_name="./reports/ReplicationReportCtx-"+"1"+".pdf"
-         pdf_report.GenerateReport(final_data_structure,1,report_name)
-         report_name="./reports/ReplicationReportCtx-"+"2"+".pdf"
-         pdf_report.GenerateReport(final_data_structure,2,report_name)
-         report_name="./reports/ReplicationReportCtx-"+"3"+".pdf"
-         pdf_report.GenerateReport(final_data_structure,3,report_name)
-         report_name="./reports/ReplicationReportCtx-"+"4"+".pdf"
-         pdf_report.GenerateReport(final_data_structure,4,report_name)
-         """
-
-        return(final_data_structure)
+        # Deleting the autosupport after the analysis
+        #self.delete_asup_file()
+        return(final_data_structure_2)
          # Just as a reference, this is the structure we need to end up having

@@ -5,6 +5,8 @@ import util.bootstrap
 import os, sys, signal
 
 import util.logger as logger
+from rest_api_server.asup_analysis_apis import AsupView
+
 _log = logger.get_logger(__name__)
 
 # Flask 'app' module, initialized when imported
@@ -12,7 +14,7 @@ flask_app = None
 flask_server = None
 
 # Port used to serve HTTP requests by Flask - use this in the frontend to make REST API calls
-HTTP_API_PORT = 5000
+HTTP_API_PORT = 8000
 
  # Accept requests on all network interfaces (including the public IP)
 HTTP_API_IP = '0.0.0.0'
@@ -21,7 +23,7 @@ def cleanup_before_shutdown():
     ''' Placeholder for cleanup operations, if any
     This function is called when the user stops the app by pressing ctrl+C
     '''
-    pass
+    AsupView.delete_all_uploaded_files()
 
 # Function pointers to be called on Flask app shutdown
 SHUTDOWN_CALLBACKS = [cleanup_before_shutdown]

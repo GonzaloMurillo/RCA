@@ -3,7 +3,7 @@
         "target":  {
             "host": "localhost",
             "protocol": "http:",
-            "port": 5000
+            "port": 8000
           },
         "secure": false,
         "changeOrigin": true

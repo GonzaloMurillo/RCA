@@ -260,7 +260,8 @@ class AsupView(FlaskView):
             _log.error("Did not find any ASUP files at '%s' for '%s'",
                        asup_auto_cores_location, flask_login.current_user.email)
             return ("No ASUP files found at <strong>'%s'</strong>, please check the path and try again.<br>"\
-                    "Both Durham and Santa Clara /auto/cores mounts are checked." % (asup_auto_cores_location),
+                    "Both Durham and Santa Clara /auto/cores mounts are checked.<br><br>"\
+                    "<i>Did you forget to add .../ddr/var/support to your path?</i>" % (asup_auto_cores_location),
                     405,
                     {'ContentType': 'text/html'}
                     )

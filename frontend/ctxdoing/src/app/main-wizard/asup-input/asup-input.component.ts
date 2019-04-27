@@ -108,11 +108,11 @@ export class AsupInputComponent implements OnInit {
             this.analyzeButtonLoading = ClrLoadingState.SUCCESS;
             this.log.info("Successfully posted ASUP file location'", this.asupFileAutoCoresPath, "' to backend");
             // Navigate to the next page
-            this.router.navigate(['replication-ctx-selection']);
+            this.router.navigate(['asup-select']);
           },
           error => {
             this.analyzeButtonLoading = ClrLoadingState.ERROR;
-            this.errorDialog.showError("Failed to post ASUP file location: " + error);
+            this.errorDialog.showError("Cannot use this location: " + error);
           }
         );
 

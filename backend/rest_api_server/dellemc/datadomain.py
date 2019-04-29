@@ -148,12 +148,14 @@ class DataDomain():
                     splitted_hostname=autosupport_read_line.split("=")
                     self.hostname=splitted_hostname[1]
                 # Here is where we have read a registry key for a replication context.
-                if 'repl.' in autosupport_read_line and ('src_' in autosupport_read_line or 'dst_' in autosupport_read_line): # If it contains information about context (both source and destination)
+                if 'repl.' in autosupport_read_line and ('src_host' in autosupport_read_line or 'dst_host' in autosupport_read_line or 'src_path' in autosupport_read_line or 'dst_path' in autosupport_read_line): # If it contains information about context (both source and destination)
+                    # Modiied due to Ahmad, Nasr testing found an issue, with one particular autosupport
                     #Example of what is inside autosupport_read_line
                     #repl.001.dst_host = DD7200-1-SH.localdomain
                     #repl.001.src_path = /data/col1/replication1
                     context_list=autosupport_read_line.split('=') #We split by the symbol =
-                    if 'repl' in context_list[0]: # There is always repl, we just want to obtain the replication context
+                    if 'repl' in context_list[0] : # There is always repl, we just want to obtain the replication context
+                        #print("Gonzalo:,format(context_list[0]))
                         replication_registry_key_left_part=context_list[0].split('.') # We split the first part by the symbol .
                         context['ctx_number']=int(replication_registry_key_left_part[1]) # The context number is always after the first '.'
 
@@ -1070,7 +1072,7 @@ class DataDomain():
               # We build the graph here
 
              """ This was the old method to generate a graph from the backend
-                 Omkar came with something better done at the front-end, so I disable it 
+                 Omkar came with something better done at the front-end, so I disable it
                  but leave here just in case it is needed sometime
              graph=ReplicationContextPlot()
 
@@ -1090,11 +1092,11 @@ class DataDomain():
              dic_auxiliar_2={'graphImage': save_name}
 
              dic_auxiliar.update(dic_auxiliar_2)
-             
+
              # This is how it was originally pointing to a resource under frontend src
              #dic_auxiliar_2={'graphImage': 'assets/ctxgraph93808.png'}
              #dic_auxiliar.update(dic_auxiliar_2)
-             
+
 
              # END OF THE GRAPH, we keep adding what is remaining
              """
